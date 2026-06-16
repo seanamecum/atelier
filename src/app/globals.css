@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: theme("colors.paper.DEFAULT");
+  color: theme("colors.ink.DEFAULT");
+  font-feature-settings: "kern", "liga", "calt";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  /* Small uppercase label used throughout the editorial UI */
+  .eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-[0.18em] text-ink-400;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-paper-50 shadow-card;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-line bg-paper-50 px-4 py-3 text-sm text-ink-900
+      outline-none transition placeholder:text-ink-300
+      focus:border-clay-300 focus:ring-2 focus:ring-clay-100;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-5 py-2.5
+      text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-ink-900 text-paper-50 hover:bg-ink-800;
+  }
+  .btn-accent {
+    @apply btn bg-clay-400 text-paper-50 hover:bg-clay-500 shadow-card;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-paper-50 text-ink-700 hover:border-ink-300 hover:text-ink-900;
+  }
+  .btn-quiet {
+    @apply btn text-ink-500 hover:text-ink-900;
+  }
+
+  .chip {
+    @apply inline-flex cursor-pointer select-none items-center gap-1.5 rounded-full border border-line
+      bg-paper-50 px-3.5 py-1.5 text-sm text-ink-600 transition hover:border-ink-300;
+  }
+  .chip-active {
+    @apply border-ink-900 bg-ink-900 text-paper-50 hover:border-ink-900;
+  }
+}
+
+/* Hide scrollbars on horizontal scrollers but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Skeleton shimmer */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(227, 221, 210, 0.35) 25%,
+    rgba(227, 221, 210, 0.7) 37%,
+    rgba(227, 221, 210, 0.35) 63%
+  );
+  background-size: 800px 100%;
+  @apply animate-shimmer;
+}
