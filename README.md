@@ -16,6 +16,15 @@ Atelier is a premium, mobile-first web app that combines three things:
 > and try-on are mocked but architected so real AI / retailer / image / payment APIs
 > drop in behind stable interfaces.
 
+## Shareable demo
+
+[`Atelier-Demo.html`](Atelier-Demo.html) is the entire experience in one self-contained file —
+no install, no server. Double-click it (or email it to anyone) and explore the full flow in any
+browser, on desktop or phone: describe a look, watch the AI assemble it under budget from real
+brands, see it on a body in the fitting room, then run the one-bag, explicit-confirm checkout.
+The same stylist engine, catalog, and design system as the app, ported to run offline on a
+single page.
+
 ## Run it
 
 ```bash

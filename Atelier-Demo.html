@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Atelier — AI Personal Stylist, Fitting Room & One-Bag Checkout</title>
+<meta name="description" content="Describe an outfit, see it on you, buy the whole look. A self-contained demo of Atelier." />
+<style>
+  :root{
+    --paper:#F6F3EE; --paper-50:#FBFAF7; --paper-100:#F6F3EE; --paper-200:#EFEAE1; --paper-300:#E3DDD2; --paper-400:#D6CEBF;
+    --ink:#1A1714; --ink-900:#1A1714; --ink-800:#26221D; --ink-700:#332E27; --ink-600:#4A4339; --ink-500:#6B6155; --ink-400:#8C8478; --ink-300:#ADA597;
+    --clay-50:#FBEFE9; --clay-100:#F3D7C9; --clay-200:#E4AE94; --clay-300:#D08763; --clay-400:#B25C3B; --clay-500:#9C4A2C; --clay-600:#7E3A22;
+    --sage-100:#E7EAE1; --sage-300:#B4BBA6; --sage-500:#7C8568; --sage-700:#525B41;
+    --line:#E3DDD2;
+    --serif:Georgia,Cambria,"Times New Roman",ui-serif,serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --shadow-card:0 1px 2px rgba(26,23,20,.04),0 8px 24px rgba(26,23,20,.06);
+    --shadow-lift:0 12px 40px rgba(26,23,20,.12);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--sans); color:var(--ink-800); background:var(--paper);
+    background-image:radial-gradient(ellipse at top,rgba(178,92,59,.05),transparent 55%);
+    -webkit-font-smoothing:antialiased; line-height:1.5; min-height:100vh;
+  }
+  .serif{font-family:var(--serif)}
+  .wrap{max-width:720px;margin:0 auto;padding:0 18px}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-400);font-weight:600}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;color:var(--ink-900);line-height:1.08;margin:0}
+  a{color:inherit;text-decoration:none}
+  button{font-family:var(--sans);cursor:pointer;border:none;background:none}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* top bar */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(246,243,238,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .topbar .row{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:21px;color:var(--ink-900)}
+  .logomark{width:30px;height:30px;border-radius:8px;background:var(--ink-900);color:var(--paper-50);display:grid;place-items:center;font-family:var(--serif);font-size:17px}
+  .bagbtn{position:relative;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--ink-700);background:var(--paper-50)}
+  .bagbtn .count{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--clay-400);color:#fff;font-size:11px;display:grid;place-items:center;font-weight:700}
+
+  /* cards & buttons */
+  .card{background:var(--paper-50);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-card)}
+  .btn-accent{background:var(--clay-400);color:#fff;border-radius:999px;padding:13px 22px;font-weight:600;font-size:15px;box-shadow:0 6px 18px rgba(178,92,59,.28);transition:transform .12s,box-shadow .12s,opacity .12s}
+  .btn-accent:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(178,92,59,.34)}
+  .btn-accent:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;transform:none}
+  .btn-ghost{background:var(--paper-50);color:var(--ink-800);border:1px solid var(--line);border-radius:999px;padding:13px 22px;font-weight:600;font-size:15px}
+  .btn-quiet{color:var(--ink-500);font-size:13px;padding:6px 0}
+  .btn-add{border:1px solid var(--line);border-radius:999px;padding:7px 16px;font-size:13px;font-weight:600;color:var(--ink-800);background:var(--paper-50)}
+  .btn-add:hover{border-color:var(--clay-300);color:var(--clay-500)}
+  .btn-add.added{background:var(--sage-500);color:#fff;border-color:var(--sage-500)}
+  .field{width:100%;border:1px solid var(--line);background:var(--paper-50);border-radius:12px;padding:11px 13px;font-size:14px;color:var(--ink-800);font-family:var(--sans)}
+  .field:focus{outline:none;border-color:var(--clay-300);box-shadow:0 0 0 3px var(--clay-50)}
+  textarea.field{resize:none;min-height:92px;line-height:1.45}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--paper-50);border-radius:999px;padding:8px 14px;font-size:13.5px;color:var(--ink-700);white-space:nowrap;transition:.12s}
+  .chip:hover{border-color:var(--clay-200)}
+  .chip-active{background:var(--ink-900);color:var(--paper-50);border-color:var(--ink-900)}
+
+  .stars{color:var(--clay-400);letter-spacing:1px;font-size:13px}
+  .pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600}
+  .pill-sage{background:var(--sage-100);color:var(--sage-700)}
+  .pill-paper{background:var(--paper-200);color:var(--ink-500)}
+
+  .rise{animation:rise .5s cubic-bezier(.16,1,.3,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .section-gap{padding:26px 0 110px}
+
+  /* product grid */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:520px){.grid2{grid-template-columns:1fr 1fr;gap:11px}}
+  .pcard{overflow:hidden;display:flex;flex-direction:column}
+  .pcard .art{aspect-ratio:1/1;position:relative}
+  .pcard .body{padding:12px 13px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .size-badge{position:absolute;top:9px;right:9px;background:var(--ink-900);color:var(--paper-50);border-radius:999px;font-size:11px;font-weight:600;padding:3px 9px}
+  .brand{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-400);font-weight:700}
+  .pname{font-family:var(--serif);font-size:16px;color:var(--ink-900);line-height:1.12}
+  .rationale{font-size:12.5px;color:var(--ink-500);font-style:italic;background:var(--paper-200);border-radius:10px;padding:8px 10px}
+
+  /* bottom nav */
+  .botnav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(246,243,238,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+  .botnav .row{max-width:720px;margin:0 auto;display:flex;justify-content:space-around;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+  .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--ink-400);font-weight:600;padding:4px 12px;letter-spacing:.02em}
+  .nav-item .ic{font-size:18px;line-height:1}
+  .nav-item.active{color:var(--clay-500)}
+
+  .swatches{display:flex;gap:4px}
+  .swatch{width:13px;height:13px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(26,23,20,.12)}
+
+  .hero h1{font-size:clamp(40px,11vw,62px);letter-spacing:-.01em}
+  .hero .em{color:var(--clay-400);font-style:italic}
+  .muted{color:var(--ink-500)}
+  .divider{height:1px;background:var(--line);border:0;margin:0}
+  .totalrow{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+  .check{display:flex;gap:10px;align-items:flex-start;background:var(--paper-200);border-radius:12px;padding:12px;font-size:13.5px;color:var(--ink-600);cursor:pointer}
+  .check input{margin-top:2px;width:17px;height:17px;accent-color:var(--clay-400)}
+  .footer-note{text-align:center;font-size:12px;color:var(--ink-400);margin-top:8px}
+  .banner{background:var(--clay-50);border:1px solid var(--clay-100);color:var(--clay-600);border-radius:12px;padding:10px 13px;font-size:13px}
+  .empty{display:grid;place-items:center;gap:10px;padding:48px 20px;text-align:center}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap row">
+    <a class="logo" href="#/" onclick="go('/')"><span class="logomark serif">A</span> Atelier</a>
+    <button class="bagbtn" onclick="go('/bag')">
+      🛍️ Bag <span class="count" id="bagcount" style="display:none">0</span>
+    </button>
+  </div>
+</header>
+
+<main id="app" class="wrap section-gap"></main>
+
+<nav class="botnav" id="botnav" style="display:none">
+  <div class="row">
+    <button class="nav-item" data-route="/stylist" onclick="go('/stylist')"><span class="ic">✦</span>Stylist</button>
+    <button class="nav-item" data-route="/try-on" onclick="go('/try-on')"><span class="ic">👤</span>Try-On</button>
+    <button class="nav-item" data-route="/bag" onclick="go('/bag')"><span class="ic">🛍️</span>Bag</button>
+    <button class="nav-item" data-route="/checkout" onclick="go('/checkout')"><span class="ic">✓</span>Checkout</button>
+  </div>
+</nav>
+
+<script>
+/* ============================================================================
+   ATELIER — single-file demo
+   Data + AI stylist engine + garment art are ported verbatim from the real
+   Next.js app (src/lib/data, src/lib/ai/stylist.ts, components/visual).
+   Everything runs offline; mocks sit behind the same shapes a real
+   AI / retailer / image / payment API would.
+============================================================================ */
+
+// ---- Brands ---------------------------------------------------------------
+const BRANDS = {
+  everlane:{name:"Everlane"}, uniqlo:{name:"Uniqlo"}, cos:{name:"COS"}, theory:{name:"Theory"},
+  acne:{name:"Acne Studios"}, aime:{name:"Aimé Leon Dore"}, "stone-island":{name:"Stone Island"},
+  nike:{name:"Nike"}, adidas:{name:"adidas"}, newbalance:{name:"New Balance"}, levis:{name:"Levi's"},
+  ralph:{name:"Polo Ralph Lauren"}, reformation:{name:"Reformation"}, ganni:{name:"GANNI"},
+  lululemon:{name:"lululemon"}, "common-projects":{name:"Common Projects"}, carhartt:{name:"Carhartt WIP"}, arket:{name:"ARKET"},
+};
+// ---- Retailers ------------------------------------------------------------
+const RETAILERS = {
+  nordstrom:{name:"Nordstrom",handoff:true}, ssense:{name:"SSENSE",handoff:false},
+  everlane:{name:"Everlane",handoff:true}, uniqlo:{name:"Uniqlo",handoff:false},
+  zara:{name:"Zara",handoff:true}, endclothing:{name:"END.",handoff:false}, "net-a-porter":{name:"NET-A-PORTER",handoff:true},
+};
+// ---- Catalog (31 pieces) --------------------------------------------------
+const ALPHA=["XS","S","M","L","XL","XXL"], WAIST=["28","30","31","32","33","34","36","38"], SHOE=["7","8","9","10","11","12","13"], OS=["OS"];
+const v=(sizes,stock=8)=>sizes.map((size,i)=>({size,inventory:Array.isArray(stock)?(stock[i]??0):stock}));
+const CATALOG = [
+  {id:"p-tee-organic-white",name:"Organic Cotton Crew Tee",brandId:"everlane",retailerId:"everlane",category:"top",styleTags:["everyday","college","streetwear","vacation"],seasons:["spring","summer","fall"],color:{name:"Off White",hex:"#EFEAE1"},palette:["#EFEAE1","#D6CEBF","#FBFAF7"],price:30,variants:v(ALPHA),rating:4.6,reviewCount:2140,description:"A weighty, breathable organic-cotton crew with a clean neckline that holds its shape wash after wash."},
+  {id:"p-oxford-blue",name:"Slim Oxford Shirt",brandId:"cos",retailerId:"zara",category:"top",styleTags:["business-casual","interview","everyday","date-night"],seasons:["all"],color:{name:"Sky Blue",hex:"#BCD3E6"},palette:["#BCD3E6","#E7EEF5","#9FBBD4"],price:69,variants:v(ALPHA),rating:4.4,reviewCount:880,description:"Crisp cotton oxford with a tailored body — equally at home under a blazer or on its own."},
+  {id:"p-linen-camp",name:"Linen Camp-Collar Shirt",brandId:"arket",retailerId:"nordstrom",category:"top",styleTags:["vacation","date-night","everyday","business-casual"],seasons:["summer","spring"],color:{name:"Sand",hex:"#D8C7A6"},palette:["#D8C7A6","#EADFC6","#C2AC82"],price:89,variants:v(ALPHA,[2,6,9,7,4,0]),rating:4.7,reviewCount:540,description:"Airy washed linen with an open camp collar. Made for warm evenings and slow mornings."},
+  {id:"p-merino-crew",name:"Merino Crewneck Sweater",brandId:"uniqlo",retailerId:"uniqlo",category:"top",styleTags:["business-casual","everyday","interview","date-night"],seasons:["fall","winter"],color:{name:"Charcoal",hex:"#3A3A3C"},palette:["#3A3A3C","#56565A","#26262A"],price:49,variants:v(ALPHA),rating:4.5,reviewCount:3120,description:"Extra-fine merino with a smooth hand and zero itch. Layers cleanly under outerwear."},
+  {id:"p-hoodie-heavy",name:"Heavyweight Logo Hoodie",brandId:"aime",retailerId:"endclothing",category:"top",styleTags:["streetwear","college","everyday"],seasons:["fall","winter","spring"],color:{name:"Heather Grey",hex:"#9C9A96"},palette:["#9C9A96","#B7B5B0","#7E7C78"],price:150,msrp:180,variants:v(ALPHA,[3,7,10,8,5,2]),rating:4.8,reviewCount:410,description:"Boxy, brushed-back fleece hoodie with a heritage chest hit. The cozy anchor of any streetwear fit."},
+  {id:"p-silk-blouse",name:"Washed Silk Blouse",brandId:"reformation",retailerId:"net-a-porter",category:"top",styleTags:["date-night","business-casual","formal","everyday"],seasons:["all"],color:{name:"Bone",hex:"#EDE6D8"},palette:["#EDE6D8","#F6F1E7","#D9CFBC"],price:168,variants:v(ALPHA),rating:4.6,reviewCount:290,description:"Fluid sandwashed silk with a relaxed drape that dresses up or down in a single move."},
+  {id:"p-jeans-slim-indigo",name:"511 Slim Jeans",brandId:"levis",retailerId:"nordstrom",category:"bottom",styleTags:["everyday","college","date-night","streetwear"],seasons:["all"],color:{name:"Rinse Indigo",hex:"#2C3A4F"},palette:["#2C3A4F","#3D4F69","#1E2838"],price:69,variants:v(WAIST),rating:4.5,reviewCount:5400,description:"The do-everything slim-straight jean in a clean dark rinse. Stretch for all-day comfort."},
+  {id:"p-chino-stone",name:"Tailored Stretch Chino",brandId:"theory",retailerId:"nordstrom",category:"bottom",styleTags:["business-casual","interview","everyday","date-night"],seasons:["all"],color:{name:"Stone",hex:"#C9BFA8"},palette:["#C9BFA8","#DBD3BF","#B0A487"],price:125,variants:v(WAIST),rating:4.4,reviewCount:760,description:"A sharp, slightly tapered chino in a refined stretch twill. Reads polished without a suit."},
+  {id:"p-trouser-pleated",name:"Pleated Wool Trouser",brandId:"cos",retailerId:"ssense",category:"bottom",styleTags:["formal","business-casual","interview","wedding"],seasons:["fall","winter","spring"],color:{name:"Graphite",hex:"#36373B"},palette:["#36373B","#4A4B50","#252629"],price:135,variants:v(WAIST,[4,8,6,9,7,5,3,0]),rating:4.6,reviewCount:220,description:"Single-pleat, high-rise wool trouser with a tailored break. The backbone of a modern formal look."},
+  {id:"p-cargo-utility",name:"Utility Cargo Pant",brandId:"carhartt",retailerId:"endclothing",category:"bottom",styleTags:["streetwear","college","everyday"],seasons:["all"],color:{name:"Olive",hex:"#5B5A3E"},palette:["#5B5A3E","#6F6E4C","#46452F"],price:118,variants:v(WAIST),rating:4.7,reviewCount:510,description:"Boxy ripstop cargo with anchored pockets and a relaxed leg. Streetwear workhorse."},
+  {id:"p-denim-shorts",name:"5-Pocket Denim Short",brandId:"levis",retailerId:"zara",category:"bottom",styleTags:["vacation","everyday","college"],seasons:["summer"],color:{name:"Light Wash",hex:"#9FB1C4"},palette:["#9FB1C4","#B9C6D5","#8599AE"],price:55,variants:v(WAIST),rating:4.3,reviewCount:980,description:"A clean mid-length denim short in a sun-faded wash, built for hot-weather wandering."},
+  {id:"p-gym-jogger",name:"Performance Jogger",brandId:"lululemon",retailerId:"nordstrom",category:"bottom",styleTags:["gym","everyday","streetwear"],seasons:["all"],color:{name:"Black",hex:"#1C1C1E"},palette:["#1C1C1E","#2E2E32","#101012"],price:128,variants:v(ALPHA),rating:4.8,reviewCount:1620,description:"Four-way-stretch jogger with a tapered cuff and zip pockets. Studio to street."},
+  {id:"p-dress-slip",name:"Bias-Cut Satin Slip Dress",brandId:"reformation",retailerId:"net-a-porter",category:"dress",styleTags:["date-night","formal","wedding","vacation"],seasons:["spring","summer","all"],color:{name:"Deep Garnet",hex:"#6E2230"},palette:["#6E2230","#8A3343","#511620"],price:248,variants:v(["XS","S","M","L","XL"]),rating:4.7,reviewCount:340,description:"A liquid bias-cut slip that skims the body. A complete date-night look in one piece."},
+  {id:"p-dress-shirt",name:"Poplin Shirt Dress",brandId:"ganni",retailerId:"ssense",category:"dress",styleTags:["everyday","business-casual","vacation","date-night"],seasons:["spring","summer"],color:{name:"Crisp White",hex:"#F3F0EA"},palette:["#F3F0EA","#E2DDD2","#FBFAF7"],price:195,variants:v(["XS","S","M","L","XL"],[3,7,8,5,0]),rating:4.5,reviewCount:180,description:"Crisp cotton poplin shirt dress with a self-belt — effortless polish for warm days."},
+  {id:"p-blazer-wool",name:"Unstructured Wool Blazer",brandId:"theory",retailerId:"nordstrom",category:"outerwear",styleTags:["business-casual","interview","formal","wedding","date-night"],seasons:["fall","winter","spring"],color:{name:"Navy",hex:"#222B3D"},palette:["#222B3D","#33405A","#161C29"],price:425,variants:v(ALPHA,[2,5,7,6,3,0]),rating:4.6,reviewCount:210,description:"Soft-shouldered wool blazer with just enough structure. Dresses an outfit up instantly."},
+  {id:"p-overshirt",name:"Wool Overshirt",brandId:"arket",retailerId:"zara",category:"outerwear",styleTags:["everyday","business-casual","streetwear","college"],seasons:["fall","winter"],color:{name:"Camel",hex:"#A9824F"},palette:["#A9824F","#C09B65","#8C6A3D"],price:145,variants:v(ALPHA),rating:4.5,reviewCount:320,description:"Shirt-jacket hybrid in a brushed wool blend — the easiest layer between seasons."},
+  {id:"p-denim-jacket",name:"Classic Trucker Jacket",brandId:"levis",retailerId:"nordstrom",category:"outerwear",styleTags:["everyday","college","streetwear","vacation"],seasons:["spring","fall"],color:{name:"Mid Wash",hex:"#5D7793"},palette:["#5D7793","#76909D","#465E76"],price:98,variants:v(ALPHA),rating:4.6,reviewCount:4100,description:"The original trucker in a versatile mid wash. Throws over everything from tees to dresses."},
+  {id:"p-puffer",name:"Lightweight Shell Puffer",brandId:"stone-island",retailerId:"endclothing",category:"outerwear",styleTags:["streetwear","everyday","vacation"],seasons:["winter","fall"],color:{name:"Black",hex:"#141416"},palette:["#141416","#26262A","#0A0A0C"],price:395,variants:v(ALPHA,[2,4,6,5,3,0]),rating:4.7,reviewCount:150,description:"Packable matte-shell puffer with a clean silhouette and real warmth-to-weight."},
+  {id:"p-trench",name:"Cotton Gabardine Trench",brandId:"everlane",retailerId:"everlane",category:"outerwear",styleTags:["business-casual","everyday","date-night","formal"],seasons:["spring","fall"],color:{name:"Khaki",hex:"#B6A585"},palette:["#B6A585","#CCBE9F","#9C8B6C"],price:268,variants:v(["XS","S","M","L","XL"]),rating:4.5,reviewCount:260,description:"A timeless belted trench in water-resistant gabardine. Instant polish over any look."},
+  {id:"p-sneaker-achilles",name:"Achilles Low Leather Sneaker",brandId:"common-projects",retailerId:"ssense",category:"shoes",styleTags:["everyday","business-casual","date-night","streetwear"],seasons:["all"],color:{name:"White",hex:"#EDEBE6"},palette:["#EDEBE6","#DAD6CC","#FBFAF7"],price:425,variants:v(SHOE,[3,6,8,9,7,4,2]),rating:4.8,reviewCount:690,description:"The minimalist white leather sneaker, gold serial stamp and all. Goes with everything."},
+  {id:"p-sneaker-990",name:"990v6 Running Sneaker",brandId:"newbalance",retailerId:"endclothing",category:"shoes",styleTags:["streetwear","everyday","college","gym"],seasons:["all"],color:{name:"Grey",hex:"#8D8F93"},palette:["#8D8F93","#A6A8AC","#74767A"],price:199,variants:v(SHOE),rating:4.9,reviewCount:2300,description:"Made-in-USA grey suede icon with pillowy cushioning. The dad-shoe that never misses."},
+  {id:"p-trainer-gym",name:"Metcon Training Shoe",brandId:"nike",retailerId:"nordstrom",category:"shoes",styleTags:["gym","everyday"],seasons:["all"],color:{name:"Black/Volt",hex:"#1F1F22"},palette:["#1F1F22","#C6F24E","#101012"],price:130,variants:v(SHOE),rating:4.6,reviewCount:1400,description:"Flat, stable platform built for lifting with enough flex for short conditioning. Gym day, sorted."},
+  {id:"p-loafer",name:"Leather Penny Loafer",brandId:"ralph",retailerId:"nordstrom",category:"shoes",styleTags:["formal","business-casual","interview","wedding"],seasons:["all"],color:{name:"Dark Brown",hex:"#41301F"},palette:["#41301F","#5A4530","#2C1F14"],price:198,variants:v(SHOE,[2,5,7,8,6,3,0]),rating:4.5,reviewCount:430,description:"Hand-finished calf-leather penny loafer. Dresses trousers up and chinos down."},
+  {id:"p-heel-strappy",name:"Strappy Heeled Sandal",brandId:"ganni",retailerId:"net-a-porter",category:"shoes",styleTags:["date-night","formal","wedding"],seasons:["spring","summer","all"],color:{name:"Black",hex:"#18181A"},palette:["#18181A","#2C2C30","#0C0C0E"],price:245,variants:v(["6","7","8","9","10","11"]),rating:4.4,reviewCount:160,description:"A barely-there strappy sandal on a walkable block heel. Elevates any evening look."},
+  {id:"p-sneaker-samba",name:"Samba OG Sneaker",brandId:"adidas",retailerId:"endclothing",category:"shoes",styleTags:["streetwear","everyday","college","date-night"],seasons:["all"],color:{name:"Black/Gum",hex:"#1A1A1C"},palette:["#1A1A1C","#B98A5E","#0E0E10"],price:100,variants:v(SHOE),rating:4.7,reviewCount:5200,description:"The low-profile terrace classic with gum sole. The internet's favorite everyday sneaker."},
+  {id:"p-belt-leather",name:"Italian Leather Belt",brandId:"everlane",retailerId:"everlane",category:"accessory",styleTags:["business-casual","formal","interview","everyday","wedding"],seasons:["all"],color:{name:"Cognac",hex:"#7A4A28"},palette:["#7A4A28","#94613A","#5E3920"],price:65,variants:v(["S","M","L","XL"]),rating:4.6,reviewCount:720,description:"Full-grain Italian leather belt with a brushed buckle. Ties a tailored look together."},
+  {id:"p-sunglasses",name:"Acetate Sunglasses",brandId:"acne",retailerId:"ssense",category:"accessory",styleTags:["vacation","streetwear","date-night","everyday"],seasons:["spring","summer","all"],color:{name:"Tortoise",hex:"#5A3B22"},palette:["#5A3B22","#8A6238","#3A2614"],price:280,variants:v(OS),rating:4.5,reviewCount:90,description:"Sculptural acetate frames with a warm tortoise finish. Finishing touch for sunny days."},
+  {id:"p-watch",name:"Minimal Field Watch",brandId:"arket",retailerId:"nordstrom",category:"accessory",styleTags:["everyday","business-casual","interview","date-night"],seasons:["all"],color:{name:"Silver/Tan",hex:"#B9B4AB"},palette:["#B9B4AB","#C9A06A","#8E8A82"],price:175,variants:v(OS),rating:4.4,reviewCount:140,description:"A clean 38mm field watch on a tan leather strap. Quiet detail that signals intent."},
+  {id:"p-cap",name:"Washed Cotton Cap",brandId:"aime",retailerId:"endclothing",category:"accessory",styleTags:["streetwear","college","gym","everyday","vacation"],seasons:["all"],color:{name:"Forest",hex:"#2F4334"},palette:["#2F4334","#415A47","#1E2D23"],price:58,variants:v(OS),rating:4.6,reviewCount:380,description:"A broken-in six-panel cap with a low crown. The lazy-day finisher."},
+  {id:"p-tote-canvas",name:"Structured Canvas Tote",brandId:"everlane",retailerId:"everlane",category:"bag",styleTags:["everyday","college","business-casual","vacation"],seasons:["all"],color:{name:"Natural",hex:"#CABFA3"},palette:["#CABFA3","#DBD2BC","#B0A484"],price:95,variants:v(OS),rating:4.7,reviewCount:610,description:"A sturdy structured tote with a laptop sleeve. Carries the work-to-weekend load."},
+  {id:"p-bag-shoulder",name:"Leather Shoulder Bag",brandId:"ganni",retailerId:"net-a-porter",category:"bag",styleTags:["date-night","everyday","formal","wedding"],seasons:["all"],color:{name:"Black",hex:"#1A1A1C"},palette:["#1A1A1C","#2E2E32","#0E0E10"],price:295,variants:v(OS),rating:4.5,reviewCount:120,description:"A compact structured shoulder bag in smooth leather. The evening essential."},
+  {id:"p-duffel-gym",name:"Performance Gym Duffel",brandId:"nike",retailerId:"nordstrom",category:"bag",styleTags:["gym","vacation","everyday"],seasons:["all"],color:{name:"Black",hex:"#1C1C1E"},palette:["#1C1C1E","#3A3A3E","#101012"],price:60,variants:v(OS),rating:4.6,reviewCount:540,description:"A rugged medium duffel with a vented shoe pocket. Built for the daily gym haul."},
+];
+const PRODUCT = Object.fromEntries(CATALOG.map(p=>[p.id,p]));
+
+// ---- Demo style profile ---------------------------------------------------
+const PROFILE = {
+  name:"You",
+  sizes:{top:"L",bottomWaist:"32",shoe:"10",dress:"M",outerwear:"L"},
+  budget:600,
+  colorPreferences:["navy","white","charcoal","stone","grey"],
+  colorAvoids:["pink"],
+  favoriteBrandIds:["everlane","uniqlo","theory","common-projects"],
+  styleKeywords:["clean","tailored","minimal"],
+};
+
+// ---- Modes ----------------------------------------------------------------
+const MODES = [
+  {id:"everyday",label:"Everyday",emoji:"☀️"},
+  {id:"streetwear",label:"Streetwear",emoji:"🧢"},
+  {id:"business-casual",label:"Business Casual",emoji:"💼"},
+  {id:"date-night",label:"Date Night",emoji:"🍷"},
+  {id:"gym",label:"Gym",emoji:"🏋️"},
+  {id:"college",label:"College",emoji:"🎒"},
+  {id:"vacation",label:"Vacation",emoji:"🏝️"},
+  {id:"formal",label:"Formal",emoji:"🎩"},
+  {id:"wedding",label:"Wedding",emoji:"💍"},
+  {id:"interview",label:"Interview",emoji:"🤝"},
+];
+const MODE_LABEL = Object.fromEntries(MODES.map(m=>[m.id,m.label]));
+function modeLabel(m){return MODE_LABEL[m]||m;}
+
+// ---- format helpers -------------------------------------------------------
+function money(n){return "$"+Math.round(n).toLocaleString("en-US");}
+function uid(p){return p+"-"+Math.random().toString(36).slice(2,9);}
+function escapeHtml(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+/* ============================================================================
+   AI stylist engine  (ported from src/lib/ai/stylist.ts)
+============================================================================ */
+const MODE_SYNONYMS = {
+  streetwear:["streetwear","street","hype","casual cool"],
+  college:["college","campus","class","student","lecture"],
+  "date-night":["date","date night","dinner","romantic","drinks"],
+  gym:["gym","workout","training","lift","run","athletic","exercise"],
+  vacation:["vacation","holiday","beach","resort","travel","trip","getaway"],
+  "business-casual":["business casual","smart casual","office","work","meeting"],
+  formal:["formal","black tie","gala","cocktail","evening"],
+  wedding:["wedding","guest","ceremony","reception"],
+  interview:["interview","job interview","first impression"],
+  everyday:["everyday","casual","daily","errand","weekend","relaxed"],
+};
+const COLOR_WORDS = ["black","white","navy","blue","grey","gray","charcoal","olive","green","khaki","camel","tan","brown","beige","cream","ivory","stone","sand","red","garnet","burgundy","pink","sage","forest","indigo","denim"];
+const SEASON_WORDS = {summer:"summer",spring:"spring",fall:"fall",autumn:"fall",winter:"winter",hot:"summer",warm:"summer",cold:"winter",cool:"fall"};
+
+function parseRequest(prompt, fallbackMode="everyday"){
+  const text=(prompt||"").toLowerCase();
+  let mode=fallbackMode, bestLen=0;
+  for(const m of Object.keys(MODE_SYNONYMS)){
+    for(const syn of MODE_SYNONYMS[m]){ if(text.includes(syn)&&syn.length>bestLen){mode=m;bestLen=syn.length;} }
+  }
+  let budget;
+  const mm=text.match(/\$?\s?(\d{2,4})/);
+  if(mm && /(\$|under|below|max|budget|around|less than|spend)/.test(text)) budget=parseInt(mm[1],10);
+  let season;
+  for(const [w,s] of Object.entries(SEASON_WORDS)){ if(text.includes(w)){season=s;break;} }
+  const colorHints=COLOR_WORDS.filter(c=>text.includes(c));
+  const wantsDress=/\bdress\b|\bgown\b/.test(text);
+  const keywords=text.replace(/[^a-z\s]/g," ").split(/\s+/).filter(w=>w.length>3);
+  return {mode,budget,season,colorHints,keywords,wantsDress};
+}
+
+const RECIPES = {
+  streetwear:[["top",1],["bottom",1],["shoes",1],["outerwear",0],["accessory",0]],
+  college:[["top",1],["bottom",1],["shoes",1],["outerwear",0],["bag",0]],
+  "date-night":[["top",1],["bottom",1],["shoes",1],["outerwear",0],["accessory",0]],
+  gym:[["top",1],["bottom",1],["shoes",1],["bag",0]],
+  vacation:[["top",1],["bottom",1],["shoes",1],["accessory",0],["bag",0]],
+  "business-casual":[["top",1],["bottom",1],["shoes",1],["outerwear",0],["accessory",0]],
+  formal:[["outerwear",1],["top",1],["bottom",1],["shoes",1],["accessory",0]],
+  wedding:[["outerwear",1],["top",1],["bottom",1],["shoes",1],["accessory",0]],
+  interview:[["outerwear",0],["top",1],["bottom",1],["shoes",1],["accessory",0]],
+  everyday:[["top",1],["bottom",1],["shoes",1],["outerwear",0]],
+};
+const DRESS_RECIPE=[["dress",1],["shoes",1],["outerwear",0],["accessory",0],["bag",0]];
+
+const inStock=p=>p.variants.some(x=>x.inventory>0);
+function matchesColorName(p,names){ if(!names||!names.length) return false; const hay=(p.color.name+" "+p.id).toLowerCase(); return names.some(n=>hay.includes(n.toLowerCase())); }
+
+function scoreProduct(p,mode,req,profile){
+  let s=0;
+  if(p.styleTags.includes(mode)) s+=50; else s-=8;
+  if(matchesColorName(p,profile.colorPreferences)) s+=16;
+  if(matchesColorName(p,profile.colorAvoids)) s-=40;
+  if(matchesColorName(p,req.colorHints)) s+=24;
+  if(profile.favoriteBrandIds.includes(p.brandId)) s+=14;
+  if(req.season && (p.seasons.includes(req.season)||p.seasons.includes("all"))) s+=8;
+  const text=(p.name+" "+p.description).toLowerCase();
+  for(const k of req.keywords) if(text.includes(k)) s+=3;
+  for(const k of profile.styleKeywords) if(text.includes(k.toLowerCase())) s+=4;
+  s+=(p.rating-4)*6;
+  if(p.msrp&&p.msrp>p.price) s+=4;
+  return s;
+}
+const isAlpha=p=>/^(XS|S|M|L|XL|XXL)$/.test(p.variants[0]?.size||"");
+function recommendedSizeFor(p,profile){
+  const s=profile.sizes; let pref;
+  if(p.category==="top") pref=s.top;
+  else if(p.category==="dress") pref=s.dress||s.top;
+  else if(p.category==="outerwear") pref=s.outerwear||s.top;
+  else if(p.category==="bottom") pref=isAlpha(p)?s.top:s.bottomWaist;
+  else if(p.category==="shoes") pref=s.shoe;
+  const stocked=p.variants.filter(x=>x.inventory>0);
+  if(!stocked.length) return p.variants[0]?.size||"OS";
+  if(pref){ const ex=stocked.find(x=>x.size===pref); if(ex) return ex.size; }
+  if(stocked.length===1) return stocked[0].size;
+  return stocked[Math.floor(stocked.length/2)].size;
+}
+function rationaleFor(p,mode,req,profile){
+  const bits=[];
+  if(p.styleTags.includes(mode)) bits.push("tuned for "+modeLabel(mode).toLowerCase());
+  if(matchesColorName(p,req.colorHints)) bits.push("in the "+p.color.name.toLowerCase()+" you asked for");
+  else if(matchesColorName(p,profile.colorPreferences)) bits.push("in your "+p.color.name.toLowerCase()+" palette");
+  if(profile.favoriteBrandIds.includes(p.brandId)) bits.push("from a brand you love");
+  if(p.msrp&&p.msrp>p.price) bits.push("and currently on sale");
+  if(!bits.length) bits.push("a versatile anchor for the look");
+  const lead=bits.shift();
+  return lead.charAt(0).toUpperCase()+lead.slice(1)+(bits.length?", "+bits.join(", "):"")+".";
+}
+function buildTitle(parsed,prompt){
+  const adj=["Clean","Considered","Easy","Sharp","Modern","Quiet"];
+  return adj[(prompt.length+parsed.mode.length)%adj.length]+" "+modeLabel(parsed.mode);
+}
+function buildSummary(parsed,count,total,over){
+  const parts=["A "+count+"-piece "+modeLabel(parsed.mode).toLowerCase()+" look"];
+  if(parsed.colorHints.length) parts.push("leaning "+parsed.colorHints[0]);
+  if(parsed.season) parts.push("for "+parsed.season);
+  let s=parts.join(", ")+".";
+  if(over) s+=" Note: this is the most budget-friendly combination available — it runs slightly over your target.";
+  return s;
+}
+
+function generateOutfit(profile,opts={}){
+  const prompt=(opts.prompt||"").trim();
+  const parsed=parseRequest(prompt,opts.mode||"everyday");
+  if(opts.mode) parsed.mode=opts.mode;
+  const budget=parsed.budget ?? profile.budget ?? 600;
+  const recipe=parsed.wantsDress?DRESS_RECIPE:RECIPES[parsed.mode];
+
+  const slotCands={};
+  for(const [cat] of recipe){
+    slotCands[cat]=CATALOG.filter(p=>p.category===cat&&inStock(p))
+      .map(p=>({product:p,score:scoreProduct(p,parsed.mode,parsed,profile)}))
+      .sort((a,b)=>b.score-a.score);
+  }
+  const required=recipe.filter(r=>r[1]);
+  const chosen={};
+  for(const [cat] of required){ const top=slotCands[cat]?.[0]; if(top) chosen[cat]=top.product; }
+  const sum=()=>Object.values(chosen).reduce((t,p)=>t+p.price,0);
+
+  let guard=0;
+  while(sum()>budget && guard++<40){
+    let best=null;
+    for(const [cat] of required){
+      const cur=chosen[cat], cands=slotCands[cat]; if(!cur||!cands) continue;
+      const cheaper=cands.filter(c=>c.product.price<cur.price); if(!cheaper.length) continue;
+      const curScore=cands.find(c=>c.product.id===cur.id)?.score||0;
+      const b=cheaper.slice().sort((a,b)=>b.product.price-a.product.price)[0];
+      const saving=cur.price-b.product.price, loss=curScore-b.score;
+      if(!best || saving/(loss+1)>best.saving/(best.loss+1)) best={cat,product:b.product,saving,loss};
+    }
+    if(!best) break; chosen[best.cat]=best.product;
+  }
+  const over=sum()>budget;
+
+  for(const [cat,req] of recipe){ if(req) continue;
+    const top=slotCands[cat]?.[0]; if(!top) continue;
+    if(sum()+top.product.price<=budget) chosen[cat]=top.product;
+  }
+
+  const pieces=[];
+  for(const [cat] of recipe){ const p=chosen[cat]; if(!p) continue;
+    pieces.push({productId:p.id,recommendedSize:recommendedSizeFor(p,profile),rationale:rationaleFor(p,parsed.mode,parsed,profile)});
+  }
+  const total=pieces.reduce((t,pc)=>t+(PRODUCT[pc.productId]?.price||0),0);
+  const palette=[];
+  for(const pc of pieces){ const p=PRODUCT[pc.productId]; if(p) for(const hex of [p.color.hex,...p.palette]){ if(palette.length<6&&!palette.includes(hex)) palette.push(hex); } }
+  return {outfit:{id:uid("outfit"),title:buildTitle(parsed,prompt),mode:parsed.mode,prompt:prompt||undefined,pieces,total,summary:buildSummary(parsed,pieces.length,total,over),palette,createdAt:Date.now()},parsed,overBudget:over};
+}
+
+/* ============================================================================
+   Garment art  (ported from components/visual/GarmentImage.tsx)
+============================================================================ */
+const SILHOUETTES={
+  top:"M50 14 L38 10 28 18 18 30 26 40 36 34 36 104 64 104 64 34 74 40 82 30 72 18 62 10 Z",
+  outerwear:"M50 14 L40 10 27 18 16 32 25 44 35 38 35 106 49 106 49 40 51 40 51 106 65 106 65 38 75 44 84 32 73 18 60 10 Z",
+  bottom:"M34 12 L66 12 66 30 60 108 48 108 50 52 42 108 30 108 34 30 Z",
+  dress:"M50 12 L40 10 32 18 38 30 30 104 70 104 62 30 68 18 60 10 Z",
+  shoes:"M16 70 L40 66 52 70 78 78 86 88 84 96 18 96 14 84 Z",
+  accessory:"M22 54 a28 14 0 1 0 56 0 a28 14 0 1 0 -56 0 M40 54 a10 10 0 1 0 20 0 a10 10 0 1 0 -20 0",
+  bag:"M30 44 L70 44 78 102 22 102 Z M40 44 a10 10 0 0 1 20 0",
+};
+function clamp(v){return Math.max(0,Math.min(255,v));}
+function shade(hex,percent){ const n=hex.replace("#",""); if(n.length!==6) return hex; const num=parseInt(n,16),amt=Math.round(2.55*percent);
+  const r=clamp((num>>16)+amt),g=clamp(((num>>8)&255)+amt),b=clamp((num&255)+amt);
+  return "#"+(((r<<16)|(g<<8)|b)>>>0).toString(16).padStart(6,"0"); }
+function garmentSVG(category,color,palette=[]){
+  const bgA=palette[1]||"#EFEAE1", bgB=palette[2]||"#E3DDD2", accent=palette[0]||color, path=SILHOUETTES[category]||SILHOUETTES.top;
+  const gid="g-"+category+"-"+color.replace("#","")+"-"+Math.random().toString(36).slice(2,6);
+  return `<svg viewBox="0 0 100 120" preserveAspectRatio="xMidYMid meet" style="height:100%;width:100%;display:block">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${bgA}"/><stop offset="100%" stop-color="${bgB}"/></linearGradient>
+      <linearGradient id="${gid}-f" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}"/><stop offset="100%" stop-color="${shade(color,-18)}"/></linearGradient>
+    </defs>
+    <rect width="100" height="120" fill="url(#${gid})"/>
+    <circle cx="78" cy="22" r="26" fill="${accent}" opacity="0.16"/>
+    <path d="${path}" fill="url(#${gid}-f)" stroke="${shade(color,-28)}" stroke-width="0.8" stroke-linejoin="round"/>
+  </svg>`;
+}
+function stars(rating){ const full=Math.round(rating); return "★".repeat(full)+"☆".repeat(5-full); }
+
+/* ============================================================================
+   State + router
+============================================================================ */
+const state = { mode:"everyday", prompt:"", result:null, cart:[], order:null };
+
+const EXAMPLES=[
+  "Make me a clean summer outfit under $200 — neutral colors, comfortable shoes",
+  "Build a business casual look for dinner, navy and stone, under $700",
+  "Streetwear fit for campus, mostly black",
+  "Smart interview outfit, navy and grey",
+  "Something for a beach wedding I'm a guest at",
+];
+
+function cartCount(){ return state.cart.reduce((t,l)=>t+l.qty,0); }
+function syncBag(){ const c=cartCount(); const el=document.getElementById("bagcount"); if(c>0){el.style.display="grid";el.textContent=c;} else el.style.display="none"; }
+function addToCart(productId,size){
+  const ex=state.cart.find(l=>l.productId===productId&&l.size===size);
+  if(ex) ex.qty++; else state.cart.push({productId,size,qty:1});
+  syncBag();
+}
+function addLook(){ if(!state.result) return; for(const pc of state.result.outfit.pieces) addToCart(pc.productId,pc.recommendedSize); }
+
+function go(route){ if(location.hash!=="#"+route) location.hash="#"+route; else render(); }
+window.addEventListener("hashchange",render);
+
+function render(){
+  const route=(location.hash||"#/").slice(1);
+  const app=document.getElementById("app");
+  const botnav=document.getElementById("botnav");
+  botnav.style.display = route==="/" ? "none":"block";
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.route===route));
+  let html="";
+  if(route==="/") html=Landing();
+  else if(route==="/stylist") html=Stylist();
+  else if(route==="/try-on") html=TryOn();
+  else if(route==="/bag") html=Bag();
+  else if(route==="/checkout") html=Checkout();
+  else html=Landing();
+  app.innerHTML=html;
+  window.scrollTo(0,0);
+  syncBag();
+}
+
+/* ---- Screens ------------------------------------------------------------- */
+function Landing(){
+  return `<div class="rise hero" style="padding-top:30px">
+    <div class="eyebrow">AI Stylist · Fitting Room · One-Tap Checkout</div>
+    <h1 style="margin-top:14px">Describe it.<br>See it on <span class="em">you</span>.<br>Buy the whole look.</h1>
+    <p class="muted" style="font-size:17px;margin:22px 0 26px;max-width:34ch">
+      Atelier is your AI personal stylist and virtual fitting room. Tell it the outfit you want — it
+      assembles a complete look from real retailers, sizes it to your body, and lets you buy every piece at once.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:320px">
+      <button class="btn-accent" onclick="state.mode='business-casual';state.prompt='Build a business casual look for dinner, navy and stone, under $700';go('/stylist')">Style my first outfit</button>
+      <button class="btn-ghost" onclick="go('/stylist')">Try the generator</button>
+    </div>
+    <div class="eyebrow" style="margin:34px 0 12px">Try saying</div>
+    <div style="display:flex;flex-direction:column;gap:9px;max-width:420px">
+      ${EXAMPLES.map(e=>`<button class="chip" style="justify-content:flex-start;text-align:left" onclick="state.prompt=${JSON.stringify(e).replace(/"/g,'&quot;')};go('/stylist')">${escapeHtml(e)}</button>`).join("")}
+    </div>
+    <div class="card" style="margin-top:34px;padding:18px 20px">
+      <div class="eyebrow">How it works</div>
+      <ol style="margin:10px 0 0;padding-left:18px;color:var(--ink-600);font-size:14px;line-height:1.9">
+        <li><b style="color:var(--ink-900)">Describe</b> the outfit, occasion, vibe, colors or budget.</li>
+        <li><b style="color:var(--ink-900)">See it on you</b> in the virtual fitting room, sized to your measurements.</li>
+        <li><b style="color:var(--ink-900)">Buy the whole look</b> across retailers in one bag — you always confirm.</li>
+      </ol>
+    </div>
+    <p class="footer-note" style="margin-top:24px">A self-contained demo · all data mocked · no real purchase is ever made.</p>
+  </div>`;
+}
+
+function modeChips(){
+  return MODES.map(m=>`<button class="chip ${state.mode===m.id?'chip-active':''}" style="margin:0 7px 0 0" onclick="state.mode='${m.id}';render()">${m.emoji} ${m.label}</button>`).join("");
+}
+
+function Stylist(){
+  const r=state.result;
+  return `<div class="rise" style="padding-top:22px">
+    <div class="eyebrow">AI Stylist</div>
+    <h2 style="font-size:34px;margin-top:8px">What should we put you in?</h2>
+    <p class="muted" style="font-size:15px;margin:8px 0 18px">Describe the outfit, occasion, vibe, colors or budget — in your own words.</p>
+    <div class="card" style="padding:18px">
+      <textarea class="field" id="prompt" placeholder="e.g. Make me a clean summer outfit under $200 — neutral colors, comfortable shoes" oninput="state.prompt=this.value">${escapeHtml(state.prompt)}</textarea>
+      <div class="eyebrow" style="margin:16px 0 8px">Outfit mode</div>
+      <div style="display:flex;overflow-x:auto;padding-bottom:4px;margin:0 -2px">${modeChips()}</div>
+      <p class="muted" style="font-size:13px;margin:14px 0 12px">Budget for this look: <b style="color:var(--ink-900)">${money(state.prompt&&parseRequest(state.prompt).budget?parseRequest(state.prompt).budget:PROFILE.budget)}</b></p>
+      <button class="btn-accent" onclick="runGenerate()">✦ Style my outfit</button>
+    </div>
+    ${r?OutfitResult(r):StartingPoints()}
+  </div>`;
+}
+function StartingPoints(){
+  const seeds=["A clean summer outfit under $200","Business casual look for a dinner meeting","All-black streetwear fit for campus","Smart interview outfit, navy and grey","Relaxed vacation outfit for warm weather"];
+  return `<div class="card" style="padding:18px;margin-top:18px">
+    <div class="eyebrow">Need a starting point?</div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">
+      ${seeds.map(s=>`<button class="chip" style="justify-content:flex-start;text-align:left" onclick="state.prompt=${JSON.stringify(s).replace(/"/g,'&quot;')};runGenerate()">${escapeHtml(s)}</button>`).join("")}
+    </div></div>`;
+}
+function runGenerate(){
+  const p=document.getElementById("prompt"); if(p) state.prompt=p.value;
+  // Let an occasion named in the prompt win (chip auto-switches); otherwise keep the selected mode.
+  const detected=parseRequest(state.prompt,state.mode).mode;
+  state.result=generateOutfit(PROFILE,{prompt:state.prompt,mode:detected});
+  state.mode=state.result.parsed.mode;
+  render();
+}
+
+function OutfitResult(r){
+  const o=r.outfit;
+  const pieceCards=o.pieces.map(pc=>{
+    const p=PRODUCT[pc.productId]; if(!p) return "";
+    const b=BRANDS[p.brandId]?.name||"", rt=RETAILERS[p.retailerId]?.name||"";
+    const inBag=state.cart.some(l=>l.productId===p.id&&l.size===pc.recommendedSize);
+    return `<div class="card pcard">
+      <div class="art">${garmentSVG(p.category,p.color.hex,p.palette)}<span class="size-badge">Size ${pc.recommendedSize}</span></div>
+      <div class="body">
+        <div class="brand">${escapeHtml(b)}</div>
+        <div class="pname">${escapeHtml(p.name)}</div>
+        <div><span class="stars">${stars(p.rating)}</span> <span class="muted" style="font-size:12px">${p.rating} (${p.reviewCount.toLocaleString()})</span></div>
+        <div class="rationale">“${escapeHtml(pc.rationale)}”</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px">
+          <div><span class="serif" style="font-size:18px;color:var(--ink-900)">${money(p.price)}</span>${p.msrp?` <span class="muted" style="font-size:12px;text-decoration:line-through">${money(p.msrp)}</span>`:""}</div>
+          <button class="btn-add ${inBag?'added':''}" onclick="addToCart('${p.id}','${pc.recommendedSize}');render()">${inBag?'✓ Added':'Add'}</button>
+        </div>
+        <div class="muted" style="font-size:11px">at ${escapeHtml(rt)}</div>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="card rise" style="padding:18px;margin-top:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div class="eyebrow">${escapeHtml(modeLabel(o.mode))} look</div>
+        <h2 style="font-size:26px;margin-top:4px">${escapeHtml(o.title)}</h2>
+      </div>
+      <div class="swatches">${o.palette.map(h=>`<span class="swatch" style="background:${h}"></span>`).join("")}</div>
+    </div>
+    <p class="muted" style="font-size:14px;margin:10px 0 4px">${escapeHtml(o.summary)}</p>
+    ${r.overBudget?`<div class="banner" style="margin:10px 0">This is the most budget-friendly combination available — it runs slightly over your target.</div>`:""}
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 0 16px">
+      <span class="eyebrow">Full look total</span>
+      <span class="serif" style="font-size:28px;color:var(--ink-900)">${money(o.total)}</span>
+    </div>
+    <div class="grid2">${pieceCards}</div>
+    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <button class="btn-accent" onclick="addLook();go('/try-on')">See it on me →</button>
+      <button class="btn-ghost" onclick="addLook();render()">Add full look to bag</button>
+      <button class="btn-quiet" style="border:1px solid var(--line);border-radius:999px;padding:0 18px" onclick="runGenerate()">↻ Restyle</button>
+    </div>
+  </div>`;
+}
+
+function TryOn(){
+  const o=state.result?.outfit;
+  const body=`<svg viewBox="0 0 220 360" style="width:220px;max-width:60%;height:auto" aria-hidden="true">
+    <circle cx="110" cy="46" r="34" fill="var(--paper-300)"/>
+    <rect x="60" y="92" width="100" height="120" rx="26" fill="${o?colorOf(o,'top'):'var(--paper-400)'}"/>
+    <rect x="66" y="200" width="88" height="120" rx="20" fill="${o?colorOf(o,'bottom'):'var(--ink-300)'}"/>
+    <rect x="64" y="322" width="92" height="22" rx="11" fill="${o?colorOf(o,'shoes'):'var(--ink-400)'}"/>
+  </svg>`;
+  const tags=o?o.pieces.filter(pc=>["top","bottom","shoes","dress","outerwear"].includes(PRODUCT[pc.productId]?.category)).map(pc=>{
+    const p=PRODUCT[pc.productId];
+    return `<div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:10px 13px">
+      <span style="font-size:14px"><b>${escapeHtml(BRANDS[p.brandId]?.name||"")}</b> ${escapeHtml(p.name)}</span>
+      <span class="pill pill-paper">Size ${pc.recommendedSize}</span></div>`;
+  }).join(""):"";
+  return `<div class="rise" style="padding-top:22px">
+    <div class="eyebrow">Virtual Fitting Room</div>
+    <h2 style="font-size:34px;margin-top:8px">See it on you</h2>
+    <p class="muted" style="font-size:15px;margin:8px 0 18px">Upload a photo and Atelier places the recommended pieces on your body, sized to your measurements.</p>
+    <div class="card" style="padding:22px;display:grid;place-items:center;background:linear-gradient(180deg,var(--paper-50),var(--paper-200))">
+      <span class="pill pill-sage" style="align-self:flex-start;margin-bottom:6px">● Virtual try-on</span>
+      ${body}
+    </div>
+    ${o?`<div style="display:flex;flex-direction:column;gap:9px;margin-top:16px">${tags}</div>`:`<div class="card empty" style="margin-top:16px"><p class="muted">No look yet.</p><button class="btn-accent" onclick="go('/stylist')">Style an outfit</button></div>`}
+    <div class="card" style="margin-top:16px;padding:18px;border-style:dashed">
+      <div style="display:grid;place-items:center;gap:6px;text-align:center;padding:12px">
+        <div style="width:46px;height:46px;border-radius:999px;background:var(--paper-200);display:grid;place-items:center;font-size:22px;color:var(--ink-400)">+</div>
+        <b class="serif" style="font-size:17px">Upload a photo</b>
+        <span class="muted" style="font-size:13px">Front-facing, full body works best. Until then, we show it on a model silhouette.</span>
+      </div>
+    </div>
+    ${o?`<button class="btn-accent" style="margin-top:18px" onclick="go('/bag')">Buy this look →</button>`:""}
+  </div>`;
+}
+function colorOf(o,cat){ const pc=o.pieces.find(x=>PRODUCT[x.productId]?.category===cat); return pc?PRODUCT[pc.productId].color.hex:"var(--paper-400)"; }
+
+function cartLines(){ return state.cart.map(l=>({...l,product:PRODUCT[l.productId]})).filter(l=>l.product); }
+function subtotal(){ return cartLines().reduce((t,l)=>t+l.product.price*l.qty,0); }
+
+function Bag(){
+  const lines=cartLines();
+  if(!lines.length) return `<div class="rise" style="padding-top:22px"><div class="eyebrow">Your bag</div><h2 style="font-size:34px;margin-top:8px">Bag</h2>
+    <div class="card empty" style="margin-top:18px"><p class="serif" style="font-size:20px">Your bag is empty</p><button class="btn-accent" onclick="go('/stylist')">Style an outfit</button></div></div>`;
+  // group by retailer
+  const groups={};
+  for(const l of lines){ const rid=l.product.retailerId; (groups[rid]=groups[rid]||[]).push(l); }
+  const groupHtml=Object.entries(groups).map(([rid,ls])=>{
+    const r=RETAILERS[rid];
+    return `<div class="card" style="padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <b class="serif" style="font-size:17px">${escapeHtml(r.name)}</b>
+        <span class="pill ${r.handoff?'pill-sage':'pill-paper'}">${r.handoff?'Direct cart handoff':'Secure deep link'}</span>
+      </div>
+      ${ls.map(l=>`<div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+        <div style="width:54px;height:54px;border-radius:10px;overflow:hidden;flex:none">${garmentSVG(l.product.category,l.product.color.hex,l.product.palette)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="brand">${escapeHtml(BRANDS[l.product.brandId]?.name||"")}</div>
+          <div style="font-size:14px;color:var(--ink-900)">${escapeHtml(l.product.name)}</div>
+          <div class="muted" style="font-size:12px">Size ${l.size} · qty ${l.qty}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="serif" style="font-size:16px">${money(l.product.price*l.qty)}</div>
+          <button class="btn-quiet" style="color:var(--clay-500)" onclick="removeLine('${l.productId}','${l.size}')">Remove</button>
+        </div>
+      </div>`).join("")}
+    </div>`;
+  }).join("");
+  const sub=subtotal();
+  return `<div class="rise" style="padding-top:22px">
+    <div class="eyebrow">Your bag · ${Object.keys(groups).length} retailer${Object.keys(groups).length>1?'s':''}</div>
+    <h2 style="font-size:34px;margin:8px 0 16px">One bag, every piece</h2>
+    ${groupHtml}
+    <div class="card" style="padding:16px">
+      <div class="totalrow"><span class="muted">Subtotal</span><span class="serif" style="font-size:22px">${money(sub)}</span></div>
+      <button class="btn-accent" style="width:100%;margin-top:8px" onclick="go('/checkout')">Review & check out →</button>
+    </div>
+  </div>`;
+}
+function removeLine(pid,size){ state.cart=state.cart.filter(l=>!(l.productId===pid&&l.size===size)); render(); }
+
+function Checkout(){
+  if(state.order==="confirmed"){
+    return `<div class="rise" style="padding-top:30px"><div class="card" style="padding:40px 24px;display:grid;place-items:center;gap:14px;text-align:center">
+      <div style="width:64px;height:64px;border-radius:999px;background:var(--sage-500);color:#fff;display:grid;place-items:center;font-size:30px">✓</div>
+      <h2 style="font-size:30px">Order confirmed</h2>
+      <p class="muted" style="max-width:34ch">Your look is on its way. We've handed each retailer their portion of the order — you'll get individual shipping confirmations by email.</p>
+      <div style="display:flex;gap:10px"><button class="btn-accent" onclick="state.cart=[];state.order=null;state.result=null;go('/stylist')">Style another look</button></div>
+    </div></div>`;
+  }
+  const lines=cartLines();
+  if(!lines.length) return `<div class="rise" style="padding-top:22px"><div class="card empty"><p class="serif" style="font-size:20px">Nothing to check out</p><button class="btn-accent" onclick="go('/stylist')">Style an outfit</button></div></div>`;
+  const groups={};
+  for(const l of lines){ const rid=l.product.retailerId; (groups[rid]=groups[rid]||[]).push(l); }
+  const sub=subtotal(), shipping=sub>250?0:12, tax=+(sub*0.0875).toFixed(2), total=+(sub+shipping+tax).toFixed(2);
+  const handoff=Object.entries(groups).map(([rid,ls])=>{
+    const r=RETAILERS[rid];
+    return `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><b>${escapeHtml(r.name)}</b>
+        <span class="pill ${r.handoff?'pill-sage':'pill-paper'}">${r.handoff?'Direct cart handoff':'Secure deep link'}</span></div>
+      <ul style="margin:8px 0 0;padding-left:0;list-style:none;font-size:13.5px;color:var(--ink-600)">
+        ${ls.map(l=>`<li style="display:flex;justify-content:space-between;padding:2px 0"><span>${escapeHtml(BRANDS[l.product.brandId]?.name||"")} ${escapeHtml(l.product.name)} · ${l.size} × ${l.qty}</span><span class="tnum">${money(l.product.price*l.qty)}</span></li>`).join("")}
+      </ul></div>`;
+  }).join("");
+  return `<div class="rise" style="padding-top:22px">
+    <div class="eyebrow">Checkout</div>
+    <h2 style="font-size:30px;margin:8px 0 4px">Review &amp; confirm</h2>
+    <p class="muted" style="font-size:14px;margin-bottom:16px">Nothing is purchased until you confirm below.</p>
+    <div class="card" style="padding:18px;margin-bottom:14px">
+      <h3 style="font-size:19px">How this order is placed</h3>
+      <p class="muted" style="font-size:13.5px;margin:6px 0 14px">Your look spans ${Object.keys(groups).length} retailer${Object.keys(groups).length>1?'s':''}. Atelier hands each one their items. You stay in control — confirm once and we route every piece.</p>
+      ${handoff}
+    </div>
+    <div class="card" style="padding:18px">
+      <h3 style="font-size:19px;margin-bottom:12px">Order total</h3>
+      <div class="totalrow"><span class="muted">Subtotal</span><span class="tnum">${money(sub)}</span></div>
+      <div class="totalrow"><span class="muted">Shipping</span><span class="tnum">${shipping===0?'Free':money(shipping)}</span></div>
+      <div class="totalrow"><span class="muted">Estimated tax</span><span class="tnum">${money(tax)}</span></div>
+      <hr class="divider" style="margin:8px 0"/>
+      <div class="totalrow"><b>Total</b><b class="serif" style="font-size:20px">${money(total)}</b></div>
+      <label class="check" style="margin-top:14px">
+        <input type="checkbox" id="authorize" onchange="document.getElementById('placebtn').disabled=!this.checked"/>
+        <span>I've reviewed my look and authorize Atelier to place this order across the retailers above.</span>
+      </label>
+      <button class="btn-accent" id="placebtn" style="width:100%;margin-top:12px" disabled onclick="state.order='confirmed';render()">Confirm &amp; place order · ${money(total)}</button>
+      <p class="footer-note">🔒 Atelier never auto-purchases. This is the only step that places the order. (Demo — no real payment is processed.)</p>
+    </div>
+  </div>`;
+}
+
+render();
+</script>
+</body>
+</html>
