@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Atelier — AI Personal Stylist, Fitting Room & One-Bag Checkout</title>
-<meta name="description" content="Describe an outfit, see it on you, buy the whole look. A self-contained demo of Atelier." />
+<title>Mira — AI Personal Stylist, Fitting Room & One-Bag Checkout</title>
+<meta name="description" content="Describe an outfit, see it on you, buy the whole look. A self-contained demo of Mira." />
 <style>
   :root{
     --paper:#F6F3EE; --paper-50:#FBFAF7; --paper-100:#F6F3EE; --paper-200:#EFEAE1; --paper-300:#E3DDD2; --paper-400:#D6CEBF;
@@ -103,7 +103,7 @@
 <body>
 <header class="topbar">
   <div class="wrap row">
-    <a class="logo" href="#/" onclick="go('/')"><span class="logomark serif">A</span> Atelier</a>
+    <a class="logo" href="#/" onclick="go('/')"><span class="logomark serif">M</span> Mira</a>
     <button class="bagbtn" onclick="go('/bag')">
       🛍️ Bag <span class="count" id="bagcount" style="display:none">0</span>
     </button>
@@ -448,7 +448,7 @@ function Landing(){
     <div class="eyebrow">AI Stylist · Fitting Room · One-Tap Checkout</div>
     <h1 style="margin-top:14px">Describe it.<br>See it on <span class="em">you</span>.<br>Buy the whole look.</h1>
     <p class="muted" style="font-size:17px;margin:22px 0 26px;max-width:34ch">
-      Atelier is your AI personal stylist and virtual fitting room. Tell it the outfit you want — it
+      Mira is your AI personal stylist and virtual fitting room. Tell it the outfit you want — it
       assembles a complete look from real retailers, sizes it to your body, and lets you buy every piece at once.
     </p>
     <div style="display:flex;flex-direction:column;gap:12px;max-width:320px">
@@ -569,7 +569,7 @@ function TryOn(){
   return `<div class="rise" style="padding-top:22px">
     <div class="eyebrow">Virtual Fitting Room</div>
     <h2 style="font-size:34px;margin-top:8px">See it on you</h2>
-    <p class="muted" style="font-size:15px;margin:8px 0 18px">Upload a photo and Atelier places the recommended pieces on your body, sized to your measurements.</p>
+    <p class="muted" style="font-size:15px;margin:8px 0 18px">Upload a photo and Mira places the recommended pieces on your body, sized to your measurements.</p>
     <div class="card" style="padding:22px;display:grid;place-items:center;background:linear-gradient(180deg,var(--paper-50),var(--paper-200))">
       <span class="pill pill-sage" style="align-self:flex-start;margin-bottom:6px">● Virtual try-on</span>
       ${body}
@@ -660,7 +660,7 @@ function Checkout(){
     <p class="muted" style="font-size:14px;margin-bottom:16px">Nothing is purchased until you confirm below.</p>
     <div class="card" style="padding:18px;margin-bottom:14px">
       <h3 style="font-size:19px">How this order is placed</h3>
-      <p class="muted" style="font-size:13.5px;margin:6px 0 14px">Your look spans ${Object.keys(groups).length} retailer${Object.keys(groups).length>1?'s':''}. Atelier hands each one their items. You stay in control — confirm once and we route every piece.</p>
+      <p class="muted" style="font-size:13.5px;margin:6px 0 14px">Your look spans ${Object.keys(groups).length} retailer${Object.keys(groups).length>1?'s':''}. Mira hands each one their items. You stay in control — confirm once and we route every piece.</p>
       ${handoff}
     </div>
     <div class="card" style="padding:18px">
@@ -672,10 +672,10 @@ function Checkout(){
       <div class="totalrow"><b>Total</b><b class="serif" style="font-size:20px">${money(total)}</b></div>
       <label class="check" style="margin-top:14px">
         <input type="checkbox" id="authorize" onchange="document.getElementById('placebtn').disabled=!this.checked"/>
-        <span>I've reviewed my look and authorize Atelier to place this order across the retailers above.</span>
+        <span>I've reviewed my look and authorize Mira to place this order across the retailers above.</span>
       </label>
       <button class="btn-accent" id="placebtn" style="width:100%;margin-top:12px" disabled onclick="state.order='confirmed';render()">Confirm &amp; place order · ${money(total)}</button>
-      <p class="footer-note">🔒 Atelier never auto-purchases. This is the only step that places the order. (Demo — no real payment is processed.)</p>
+      <p class="footer-note">🔒 Mira never auto-purchases. This is the only step that places the order. (Demo — no real payment is processed.)</p>
     </div>
   </div>`;
 }

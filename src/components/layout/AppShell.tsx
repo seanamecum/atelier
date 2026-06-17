@@ -13,12 +13,16 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { href: "/home", label: "Home", icon: "🏠" },
   { href: "/stylist", label: "Stylist", icon: "✨" },
   { href: "/try-on", label: "Try-On", icon: "🪞" },
   { href: "/closet", label: "Closet", icon: "🧥" },
   { href: "/saved", label: "Saved", icon: "🔖" },
   { href: "/cart", label: "Cart", icon: "🛍️" },
 ];
+
+// Bottom bar shows a focused subset (Saved lives in the sidebar / home).
+const MOBILE_NAV = NAV.filter((n) => n.href !== "/saved");
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -31,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-line bg-paper/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/stylist" aria-label="Atelier home">
+          <Link href="/home" aria-label="Mira home">
             <Logo />
           </Link>
           <div className="flex items-center gap-2">
@@ -94,7 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/90 backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-6">
-          {NAV.map((item) => (
+          {MOBILE_NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}

@@ -9,6 +9,8 @@ import type {
   StyleProfile,
 } from "@/lib/types";
 import { CATALOG } from "@/lib/data/catalog";
+import { getBrand } from "@/lib/data/brands";
+import { detectIntents, type StyleIntent } from "@/lib/ai/intents";
 import { uid, modeLabel } from "@/lib/utils/format";
 
 /**
@@ -37,6 +39,8 @@ export interface ParsedRequest {
   /** Free keywords pulled from the prompt. */
   keywords: string[];
   wantsDress: boolean;
+  /** Higher-order style intents detected (old-money, banker, taller…). */
+  intents: StyleIntent[];
 }
 
 const MODE_SYNONYMS: Record<OutfitMode, string[]> = {
@@ -99,7 +103,11 @@ export function parseRequest(prompt: string, fallbackMode: OutfitMode = "everyda
     .split(/\s+/)
     .filter((w) => w.length > 3);
 
-  return { mode, budget, season, colorHints, keywords, wantsDress };
+  // Higher-order intents — may bias the mode if the user didn't name one.
+  const intent = detectIntents(prompt);
+  if (intent.modeBias && bestLen === 0) mode = intent.modeBias;
+
+  return { mode, budget, season, colorHints, keywords, wantsDress, intents: intent.matched };
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +245,16 @@ function scoreProduct(
   // Style taste keywords from the profile.
   for (const k of profile.styleKeywords) {
     if (text.includes(k.toLowerCase())) score += 4;
+  }
+
+  // Higher-order style intents (old-money, banker, taller, luxury…).
+  if (req.intents.length) {
+    const tier = getBrand(p.brandId)?.tier;
+    for (const intent of req.intents) {
+      if (tier && intent.tierBoost?.[tier]) score += intent.tierBoost[tier]!;
+      if (intent.colorBoost && matchesColorName(p, intent.colorBoost)) score += 18;
+      if (intent.colorPenalty && matchesColorName(p, intent.colorPenalty)) score -= 22;
+    }
   }
 
   // Quality nudge.
@@ -439,6 +457,13 @@ export function generateOutfit(profile: StyleProfile, opts: GenerateOptions = {}
   const title = buildTitle(parsed, prompt);
   const summary = buildSummary(parsed, pieces.length, total, overBudget, buildAround.length > 0);
 
+  // Expert "why" notes — intent-driven, with sensible defaults.
+  const styleNotes = parsed.intents.flatMap((i) => i.notes).slice(0, 3);
+  if (styleNotes.length === 0) {
+    if (parsed.colorHints.length) styleNotes.push(`Built around a ${parsed.colorHints[0]} palette you asked for.`);
+    styleNotes.push(`Pieces are balanced for ${modeLabel(parsed.mode).toLowerCase()} and sized to your profile.`);
+  }
+
   const outfit: Outfit = {
     id: uid("outfit"),
     title,
@@ -447,6 +472,8 @@ export function generateOutfit(profile: StyleProfile, opts: GenerateOptions = {}
     pieces,
     total,
     summary,
+    styleNotes,
+    intents: parsed.intents.map((i) => i.label),
     palette,
     createdAt: Date.now(),
   };
@@ -455,6 +482,7 @@ export function generateOutfit(profile: StyleProfile, opts: GenerateOptions = {}
 }
 
 function buildTitle(parsed: ParsedRequest, prompt: string): string {
+  if (parsed.intents[0]) return `${parsed.intents[0].label} · ${modeLabel(parsed.mode)}`;
   const adjectives = ["Clean", "Considered", "Easy", "Sharp", "Modern", "Quiet"];
   const seed = (prompt.length + parsed.mode.length) % adjectives.length;
   return `${adjectives[seed]} ${modeLabel(parsed.mode)}`;
@@ -491,4 +519,30 @@ export function suggestMissingPieces(
   mode: OutfitMode = "everyday",
 ): GenerateResult {
   return generateOutfit(profile, { mode, buildAround: items });
+}
+
+// ---------------------------------------------------------------------------
+// Per-piece alternatives (budget down / upgrade up)
+// ---------------------------------------------------------------------------
+
+export interface PieceAlternatives {
+  cheaper?: Product;
+  upgrade?: Product;
+}
+
+/**
+ * Find a budget-friendly and a premium alternative for a piece, within the same
+ * category and sharing the look's mode. Powers the "swap" affordances in results.
+ */
+export function pieceAlternatives(product: Product, mode: OutfitMode): PieceAlternatives {
+  const peers = CATALOG.filter(
+    (p) => p.category === product.category && p.id !== product.id && p.styleTags.includes(mode) && p.variants.some((v) => v.inventory > 0),
+  );
+  const cheaper = peers
+    .filter((p) => p.price < product.price)
+    .sort((a, b) => b.price - a.price)[0];
+  const upgrade = peers
+    .filter((p) => p.price > product.price)
+    .sort((a, b) => a.price - b.price)[0];
+  return { cheaper, upgrade };
 }

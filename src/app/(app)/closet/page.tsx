@@ -68,7 +68,7 @@ export default function ClosetPage() {
       <PageHeader
         eyebrow="Your closet"
         title="Shop around what you own"
-        subtitle="Add pieces you already have. Atelier builds outfits around them and finds the pieces you're missing."
+        subtitle="Add pieces you already have. Mira builds outfits around them and finds the pieces you're missing."
       />
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -189,7 +189,7 @@ export default function ClosetPage() {
                 <p className="mb-3 text-sm text-ink-400">
                   {selected.length > 0
                     ? `Building around ${selected.length} selected item${selected.length > 1 ? "s" : ""}.`
-                    : "Select one or more items above, choose a mode, and Atelier finds the rest."}
+                    : "Select one or more items above, choose a mode, and Mira finds the rest."}
                 </p>
                 <ModeSelector value={mode} onChange={setMode} className="mb-4" />
                 <button className="btn-accent" disabled={selected.length === 0 || busy} onClick={buildAround}>

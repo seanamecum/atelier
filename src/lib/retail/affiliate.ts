@@ -16,7 +16,7 @@ export function affiliateLink(product: Product): string {
   if (!retailer) return "#";
   const url = new URL(retailer.baseUrl + product.productPath);
   url.searchParams.set("aff", retailer.affiliateTag);
-  url.searchParams.set("utm_source", "atelier");
+  url.searchParams.set("utm_source", "mira");
   url.searchParams.set("utm_medium", "stylist");
   return url.toString();
 }

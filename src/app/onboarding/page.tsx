@@ -10,19 +10,19 @@ const SLIDES = [
   {
     icon: "✨",
     title: "Meet your AI stylist",
-    body: "Tell Atelier what you need in plain words — “a clean summer outfit under $200” — and get a complete look with real pieces, prices and sizes.",
+    body: "Tell Mira what you need in plain words — “a clean summer outfit under $200” — and get a complete look with real pieces, prices and sizes.",
     art: { category: "top", color: "#6E2230", palette: ["#6E2230", "#EFEAE1", "#E3DDD2"] },
   },
   {
     icon: "🪞",
     title: "See it on your body",
-    body: "Upload a photo and your measurements. Atelier places recommended pieces on you and calls the right size, so you order with confidence.",
+    body: "Upload a photo and your measurements. Mira places recommended pieces on you and calls the right size, so you order with confidence.",
     art: { category: "dress", color: "#222B3D", palette: ["#222B3D", "#E3DDD2", "#EFEAE1"] },
   },
   {
     icon: "🛍️",
     title: "Buy the whole look",
-    body: "Add every piece to one bag across retailers. You always confirm before anything is purchased — Atelier never checks out on its own.",
+    body: "Add every piece to one bag across retailers. You always confirm before anything is purchased — Mira never checks out on its own.",
     art: { category: "shoes", color: "#EDEBE6", palette: ["#EDEBE6", "#E3DDD2", "#FBFAF7"] },
   },
 ];

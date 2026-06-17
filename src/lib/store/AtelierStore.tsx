@@ -16,6 +16,11 @@ import { uid } from "@/lib/utils/format";
 // Persisted shape
 // ---------------------------------------------------------------------------
 
+interface Streak {
+  count: number;
+  lastActive: string; // YYYY-MM-DD
+}
+
 interface PersistedState {
   profile: StyleProfile;
   closet: ClosetItem[];
@@ -24,6 +29,17 @@ interface PersistedState {
   lastOutfitId: string | null;
   cart: Cart;
   order: Order | null;
+  recentlyViewedIds: string[];
+  streak: Streak;
+}
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+function yesterdayKey(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
 }
 
 const STORAGE_KEY = "atelier:v1";
@@ -48,6 +64,8 @@ const INITIAL: PersistedState = {
   lastOutfitId: null,
   cart: { lines: [] },
   order: null,
+  recentlyViewedIds: [],
+  streak: { count: 0, lastActive: "" },
 };
 
 // ---------------------------------------------------------------------------
@@ -86,6 +104,11 @@ interface AtelierContextValue extends PersistedState {
   createPendingOrder: () => Order;
   confirmOrder: () => void;
   resetOrder: () => void;
+
+  // engagement
+  recordView: (productId: string) => void;
+  recentlyViewedIds: string[];
+  streak: Streak;
 }
 
 const AtelierContext = createContext<AtelierContextValue | null>(null);
@@ -103,12 +126,25 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<PersistedState>;
+        // Daily streak: +1 if last active yesterday, reset if older, hold if today.
+        const prev = parsed.streak ?? { count: 0, lastActive: "" };
+        const today = todayKey();
+        const streak: Streak =
+          prev.lastActive === today
+            ? prev
+            : prev.lastActive === yesterdayKey()
+              ? { count: prev.count + 1, lastActive: today }
+              : { count: 1, lastActive: today };
         setState({
           ...INITIAL,
           ...parsed,
           profile: { ...DEFAULT_PROFILE, ...parsed.profile },
           cart: parsed.cart ?? { lines: [] },
+          recentlyViewedIds: parsed.recentlyViewedIds ?? [],
+          streak,
         });
+      } else {
+        setState((s) => ({ ...s, streak: { count: 1, lastActive: todayKey() } }));
       }
     } catch {
       /* ignore corrupt storage */
@@ -278,6 +314,15 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
         ),
 
       resetOrder: () => patch({ order: null }),
+
+      recordView: (productId) =>
+        setState((s) => ({
+          ...s,
+          recentlyViewedIds: [productId, ...s.recentlyViewedIds.filter((id) => id !== productId)].slice(0, 12),
+        })),
+
+      recentlyViewedIds: state.recentlyViewedIds,
+      streak: state.streak,
     };
   }, [state, hydrated]);
 

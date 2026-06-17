@@ -161,7 +161,7 @@ function StylistInner() {
             <div className="text-4xl">✨</div>
             <p className="font-display text-xl text-ink-900">Your outfit will appear here</p>
             <p className="max-w-sm text-sm text-ink-400">
-              Describe a look above and Atelier will assemble a complete outfit — pieces, prices,
+              Describe a look above and Mira will assemble a complete outfit — pieces, prices,
               sizes and a visual preview.
             </p>
           </div>

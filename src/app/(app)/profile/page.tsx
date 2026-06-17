@@ -82,7 +82,7 @@ function ProfileInner() {
   const onSave = () => {
     if (setup) {
       completeOnboarding();
-      router.push("/stylist");
+      router.push("/home");
       return;
     }
     setSaved(true);
@@ -94,7 +94,7 @@ function ProfileInner() {
       <PageHeader
         eyebrow={setup ? "Step 2 of 2" : "Your profile"}
         title={setup ? "Build your style profile" : "Style profile"}
-        subtitle="The more Atelier knows, the sharper your outfits and size calls. You can change any of this later."
+        subtitle="The more Mira knows, the sharper your outfits and size calls. You can change any of this later."
       />
 
       <div className="grid gap-5">
@@ -195,7 +195,7 @@ function ProfileInner() {
         </Section>
 
         {/* Colors */}
-        <Section title="Colors you love" hint="Atelier leans into these and avoids the ones you skip.">
+        <Section title="Colors you love" hint="Mira leans into these and avoids the ones you skip.">
           <span className="eyebrow mb-2 block">Favorites</span>
           <div className="mb-4 flex flex-wrap gap-2">
             {COLOR_OPTIONS.map((c) => {

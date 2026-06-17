@@ -1,8 +1,8 @@
-# Atelier — AI Personal Stylist, Fitting Room & Shopping Assistant
+# Mira — AI Personal Stylist, Fitting Room & Shopping Assistant
 
 Describe the outfit you want → see it on your own body → buy the whole look in one place.
 
-Atelier is a premium, mobile-first web app that combines three things:
+Mira is a premium, mobile-first web app that combines three things:
 
 1. **AI personal stylist** — type a natural-language request (“make me a clean summer
    outfit under $200”) and get a complete, occasion-ready outfit with real pieces,
@@ -10,7 +10,7 @@ Atelier is a premium, mobile-first web app that combines three things:
 2. **Virtual fitting room** — upload a photo and your measurements; recommended pieces
    are placed on your body and sized to you.
 3. **One-bag shopping** — add an entire look to your bag across multiple retailers and
-   check out once. **Atelier never auto-purchases — you always confirm.**
+   check out once. **Mira never auto-purchases — you always confirm.**
 
 > Everything here is a working, fully-offline **prototype**: the catalog, AI stylist,
 > and try-on are mocked but architected so real AI / retailer / image / payment APIs
@@ -18,7 +18,7 @@ Atelier is a premium, mobile-first web app that combines three things:
 
 ## Shareable demo
 
-[`Atelier-Demo.html`](Atelier-Demo.html) is the entire experience in one self-contained file —
+[`Mira-Demo.html`](Mira-Demo.html) is the entire experience in one self-contained file —
 no install, no server. Double-click it (or email it to anyone) and explore the full flow in any
 browser, on desktop or phone: describe a look, watch the AI assemble it under budget from real
 brands, see it on a body in the fitting room, then run the one-bag, explicit-confirm checkout.
@@ -99,5 +99,5 @@ services is a localized change:
 - **Premium & quiet** — editorial typography, warm paper, a single clay accent.
 - **Profile-aware** — outfits respect your sizes, budget, favorite brands, color
   preferences/avoids and style taste.
-- **You’re always in control** — Atelier proposes and assembles; the user confirms before
+- **You’re always in control** — Mira proposes and assembles; the user confirms before
   any purchase.

@@ -12,6 +12,10 @@ body {
   margin: 0;
 }
 
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background-color: theme("colors.paper.DEFAULT");
   color: theme("colors.ink.DEFAULT");
@@ -20,14 +24,36 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
 @layer components {
-  /* Small uppercase label used throughout the editorial UI */
   .eyebrow {
-    @apply text-[11px] font-medium uppercase tracking-[0.18em] text-ink-400;
+    @apply text-[11px] font-medium uppercase tracking-[0.22em] text-ink-400;
   }
 
   .card {
     @apply rounded-2xl border border-line bg-paper-50 shadow-card;
+  }
+  .card-interactive {
+    @apply card transition duration-300 hover:-translate-y-1 hover:shadow-lift;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Glass surfaces for floating controls (md blur keeps it 60fps) */
+  .glass {
+    @apply border border-white/15 bg-white/10 backdrop-blur-md;
+  }
+  .glass-dark {
+    @apply border border-white/10 backdrop-blur-md;
+    background-color: rgb(20 17 14 / 0.72);
   }
 
   .field {
@@ -38,16 +64,27 @@ body {
 
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-5 py-2.5
-      text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+      text-sm font-medium transition duration-200 active:scale-[0.97]
+      disabled:cursor-not-allowed disabled:opacity-50;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
   .btn-primary {
     @apply btn bg-ink-900 text-paper-50 hover:bg-ink-800;
   }
   .btn-accent {
-    @apply btn bg-clay-400 text-paper-50 hover:bg-clay-500 shadow-card;
+    @apply btn bg-clay-400 text-paper-50 shadow-card hover:bg-clay-500 hover:shadow-lift;
+  }
+  .btn-champagne {
+    @apply btn bg-champagne-gradient text-studio-900 shadow-glow hover:brightness-105;
   }
   .btn-ghost {
     @apply btn border border-line bg-paper-50 text-ink-700 hover:border-ink-300 hover:text-ink-900;
+  }
+  .btn-glass {
+    @apply btn glass-dark text-paper-50;
+  }
+  .btn-glass:hover {
+    background-color: rgb(34 29 23 / 0.72);
   }
   .btn-quiet {
     @apply btn text-ink-500 hover:text-ink-900;
@@ -55,20 +92,44 @@ body {
 
   .chip {
     @apply inline-flex cursor-pointer select-none items-center gap-1.5 rounded-full border border-line
-      bg-paper-50 px-3.5 py-1.5 text-sm text-ink-600 transition hover:border-ink-300;
+      bg-paper-50 px-3.5 py-1.5 text-sm text-ink-600 transition duration-200 hover:border-ink-300;
   }
   .chip-active {
     @apply border-ink-900 bg-ink-900 text-paper-50 hover:border-ink-900;
   }
+
+  /* Gradient / metallic text */
+  .text-champagne {
+    @apply bg-champagne-gradient bg-clip-text text-transparent;
+  }
+
+  /* Section heading used across the feed */
+  .feed-title {
+    @apply font-display text-2xl leading-tight text-ink-900;
+  }
 }
 
-/* Hide scrollbars on horizontal scrollers but keep functionality */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+@layer utilities {
+  /* Staggered reveal — apply .reveal and optional .reveal-1..6 for delay */
+  .reveal {
+    opacity: 0;
+    animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .reveal-1 { animation-delay: 0.06s; }
+  .reveal-2 { animation-delay: 0.12s; }
+  .reveal-3 { animation-delay: 0.18s; }
+  .reveal-4 { animation-delay: 0.24s; }
+  .reveal-5 { animation-delay: 0.3s; }
+  .reveal-6 { animation-delay: 0.36s; }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Edge-fade for horizontal carousels */
+  .edge-fade {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+  }
 }
 
 /* Skeleton shimmer */
@@ -81,4 +142,21 @@ body {
   );
   background-size: 800px 100%;
   @apply animate-shimmer;
+}
+
+/* Range input — premium track */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 9999px;
+  background: theme("colors.clay.400");
+  border: 3px solid theme("colors.paper.50");
+  box-shadow: 0 2px 8px rgba(26, 23, 20, 0.25);
+  cursor: pointer;
 }

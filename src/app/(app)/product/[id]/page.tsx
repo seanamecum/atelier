@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CATALOG, getProduct } from "@/lib/data/catalog";
 import { getBrand } from "@/lib/data/brands";
 import { getRetailer } from "@/lib/data/retailers";
@@ -18,7 +18,12 @@ import { money, cn } from "@/lib/utils/format";
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const product = getProduct(id);
-  const { addToCart } = useAtelier();
+  const { addToCart, recordView } = useAtelier();
+
+  useEffect(() => {
+    if (product) recordView(product.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const firstInStock = product?.variants.find((v) => v.inventory > 0)?.size;
   const [size, setSize] = useState<string | undefined>(firstInStock);
@@ -129,7 +134,7 @@ export default function ProductPage() {
             </a>
           </div>
           <p className="mt-3 text-xs text-ink-400">
-            Free shipping over $250 · You always confirm before any purchase. Atelier never checks out
+            Free shipping over $250 · You always confirm before any purchase. Mira never checks out
             on its own.
           </p>
 

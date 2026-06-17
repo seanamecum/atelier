@@ -66,7 +66,7 @@ export default function CheckoutPage() {
           <div className="card p-5">
             <h2 className="mb-1 font-display text-xl text-ink-900">How this order is placed</h2>
             <p className="mb-4 text-sm text-ink-400">
-              Your look spans {handoffs.length} retailer{handoffs.length > 1 ? "s" : ""}. Atelier hands each
+              Your look spans {handoffs.length} retailer{handoffs.length > 1 ? "s" : ""}. Mira hands each
               one their items. You stay in control — confirm once and we route every piece.
             </p>
             <div className="space-y-3">
@@ -129,7 +129,7 @@ export default function CheckoutPage() {
                 className="mt-0.5 h-4 w-4 accent-clay-400"
               />
               <span className="text-ink-600">
-                I've reviewed my look and authorize Atelier to place this order across the retailers above.
+                I've reviewed my look and authorize Mira to place this order across the retailers above.
               </span>
             </label>
 
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
               Confirm & place order · {money(total)}
             </button>
             <p className="mt-2 text-center text-xs text-ink-400">
-              🔒 Atelier never auto-purchases. This is the only step that places the order.
+              🔒 Mira never auto-purchases. This is the only step that places the order.
             </p>
           </div>
         </div>

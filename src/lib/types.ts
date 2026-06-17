@@ -1,5 +1,5 @@
 /**
- * Atelier domain model.
+ * Mira domain model.
  *
  * These types are the contract between the UI, the (currently mocked) AI stylist
  * engine, and the retailer/commerce layer. When real APIs are introduced, the
@@ -174,6 +174,10 @@ export interface Outfit {
   total: number;
   /** Stylist's one-line summary of the look. */
   summary: string;
+  /** Expert styling notes — the "why" behind the look as a whole. */
+  styleNotes?: string[];
+  /** Named style intents detected in the request (e.g. "old-money"). */
+  intents?: string[];
   /** Palette used for the visual lookboard. */
   palette: string[];
   createdAt: number;

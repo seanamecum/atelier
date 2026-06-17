@@ -14,7 +14,7 @@ const SAMPLE_PROMPTS = [
 
 export default function Landing() {
   const { hydrated, profile } = useAtelier();
-  const primaryHref = hydrated && profile.onboarded ? "/stylist" : "/onboarding";
+  const primaryHref = hydrated && profile.onboarded ? "/home" : "/onboarding";
 
   return (
     <div className="min-h-screen bg-paper bg-paper-fade">
@@ -36,7 +36,7 @@ export default function Landing() {
             Buy the whole look.
           </h1>
           <p className="mt-5 max-w-md text-lg leading-relaxed text-ink-500">
-            Atelier is your AI personal stylist and virtual fitting room. Tell it the
+            Mira is your AI personal stylist and virtual fitting room. Tell it the
             outfit you want — it assembles a complete look from real retailers, sizes it
             to your body, places it on your photo, and lets you buy every piece at once.
           </p>
@@ -87,7 +87,7 @@ export default function Landing() {
           {[
             { icon: "✨", t: "AI personal stylist", d: "Natural-language requests become complete, occasion-ready outfits within your budget." },
             { icon: "🪞", t: "Virtual fitting room", d: "Upload a photo and see recommended pieces placed on your body, sized to your measurements." },
-            { icon: "🧥", t: "Shop your closet", d: "Add clothes you own and Atelier builds around them — or finds the missing pieces." },
+            { icon: "🧥", t: "Shop your closet", d: "Add clothes you own and Mira builds around them — or finds the missing pieces." },
           ].map((f) => (
             <div key={f.t} className="card p-5">
               <div className="mb-3 grid h-10 w-10 place-items-center rounded-full bg-paper-200 text-lg">{f.icon}</div>

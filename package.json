@@ -1,8 +1,8 @@
 {
-  "name": "atelier",
+  "name": "mira",
   "version": "0.1.0",
   "private": true,
-  "description": "Atelier — AI personal stylist, virtual fitting room & one-click outfit shopping",
+  "description": "Mira — AI personal stylist, virtual fitting room & one-click outfit shopping",
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
