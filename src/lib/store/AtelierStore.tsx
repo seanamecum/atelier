@@ -11,6 +11,8 @@ import type {
 } from "@/lib/types";
 import { getProduct } from "@/lib/data/catalog";
 import { uid } from "@/lib/utils/format";
+import { type Plan, type PremiumFeature, hasFeature, FREE_DAILY_GENERATIONS } from "@/lib/premium";
+import { track } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Persisted shape
@@ -19,6 +21,11 @@ import { uid } from "@/lib/utils/format";
 interface Streak {
   count: number;
   lastActive: string; // YYYY-MM-DD
+}
+
+interface Usage {
+  day: string; // YYYY-MM-DD
+  generations: number;
 }
 
 interface PersistedState {
@@ -31,6 +38,8 @@ interface PersistedState {
   order: Order | null;
   recentlyViewedIds: string[];
   streak: Streak;
+  plan: Plan;
+  usage: Usage;
 }
 
 function todayKey(): string {
@@ -66,6 +75,8 @@ const INITIAL: PersistedState = {
   order: null,
   recentlyViewedIds: [],
   streak: { count: 0, lastActive: "" },
+  plan: "free",
+  usage: { day: "", generations: 0 },
 };
 
 // ---------------------------------------------------------------------------
@@ -109,6 +120,15 @@ interface AtelierContextValue extends PersistedState {
   recordView: (productId: string) => void;
   recentlyViewedIds: string[];
   streak: Streak;
+
+  // monetization
+  plan: Plan;
+  isPremium: boolean;
+  can: (feature: PremiumFeature) => boolean;
+  generationsLeft: number; // Infinity for premium
+  /** Try to consume a styling credit. Returns false if the free cap is hit. */
+  consumeGeneration: () => boolean;
+  setPlan: (plan: Plan) => void;
 }
 
 const AtelierContext = createContext<AtelierContextValue | null>(null);
@@ -135,6 +155,11 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
             : prev.lastActive === yesterdayKey()
               ? { count: prev.count + 1, lastActive: today }
               : { count: 1, lastActive: today };
+        // Reset the daily styling allowance when the day rolls over.
+        const usage: Usage =
+          parsed.usage && parsed.usage.day === today
+            ? parsed.usage
+            : { day: today, generations: 0 };
         setState({
           ...INITIAL,
           ...parsed,
@@ -142,10 +167,17 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
           cart: parsed.cart ?? { lines: [] },
           recentlyViewedIds: parsed.recentlyViewedIds ?? [],
           streak,
+          plan: parsed.plan ?? "free",
+          usage,
         });
       } else {
-        setState((s) => ({ ...s, streak: { count: 1, lastActive: todayKey() } }));
+        setState((s) => ({
+          ...s,
+          streak: { count: 1, lastActive: todayKey() },
+          usage: { day: todayKey(), generations: 0 },
+        }));
       }
+      track({ name: "app_open" });
     } catch {
       /* ignore corrupt storage */
     }
@@ -323,6 +355,30 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
 
       recentlyViewedIds: state.recentlyViewedIds,
       streak: state.streak,
+
+      // ---- monetization ----
+      plan: state.plan,
+      isPremium: state.plan !== "free",
+      can: (feature) => hasFeature(state.plan, feature),
+      generationsLeft:
+        state.plan !== "free"
+          ? Infinity
+          : Math.max(0, FREE_DAILY_GENERATIONS - state.usage.generations),
+
+      consumeGeneration: () => {
+        if (state.plan !== "free") return true;
+        const today = todayKey();
+        const used = state.usage.day === today ? state.usage.generations : 0;
+        if (used >= FREE_DAILY_GENERATIONS) return false;
+        setState((s) => ({ ...s, usage: { day: today, generations: used + 1 } }));
+        return true;
+      },
+
+      setPlan: (plan) =>
+        setState((s) => {
+          if (plan !== "free" && s.plan === "free") track({ name: "subscription_activated", plan });
+          return { ...s, plan };
+        }),
     };
   }, [state, hydrated]);
 

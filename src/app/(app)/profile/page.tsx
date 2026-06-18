@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAtelier } from "@/lib/store/AtelierStore";
+import { track } from "@/lib/analytics";
+import { PLANS } from "@/lib/premium";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ChipSelect } from "@/components/ui/ChipSelect";
 import { PhotoUpload } from "@/components/ui/PhotoUpload";
@@ -72,7 +75,7 @@ function ProfileInner() {
   const params = useSearchParams();
   const router = useRouter();
   const setup = params.get("setup") === "1";
-  const { profile, updateProfile, completeOnboarding, setBodyPhoto } = useAtelier();
+  const { profile, updateProfile, completeOnboarding, setBodyPhoto, plan, isPremium } = useAtelier();
   const [saved, setSaved] = useState(false);
 
   const sizes = profile.sizes;
@@ -82,6 +85,7 @@ function ProfileInner() {
   const onSave = () => {
     if (setup) {
       completeOnboarding();
+      track({ name: "onboarding_complete" });
       router.push("/home");
       return;
     }
@@ -98,6 +102,32 @@ function ProfileInner() {
       />
 
       <div className="grid gap-5">
+        {/* Membership */}
+        {!setup && (
+          <Link
+            href="/upgrade"
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-2xl border p-5 transition",
+              isPremium
+                ? "border-transparent bg-studio-900 bg-studio-spot text-paper-50"
+                : "border-line bg-paper-50 hover:border-ink-300",
+            )}
+          >
+            <div>
+              <p className={cn("eyebrow", isPremium && "!text-champagne-200")}>Membership</p>
+              <p className={cn("mt-0.5 font-display text-xl", isPremium ? "text-paper-50" : "text-ink-900")}>
+                {PLANS[plan].name}
+              </p>
+              <p className={cn("text-sm", isPremium ? "text-paper-300" : "text-ink-400")}>
+                {isPremium ? "Unlimited styling & advanced try-on" : "Upgrade for unlimited styling & advanced try-on"}
+              </p>
+            </div>
+            <span className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold", isPremium ? "bg-white/10 text-paper-100" : "bg-champagne-gradient text-studio-900")}>
+              {isPremium ? "Manage" : "Go Mira+"}
+            </span>
+          </Link>
+        )}
+
         {/* Identity */}
         <Section title="The basics">
           <div className="grid gap-4 sm:grid-cols-2">

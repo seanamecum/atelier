@@ -8,7 +8,10 @@ import { generateOutfit } from "@/lib/ai/stylist";
 import { ModeSelector } from "@/components/outfit/ModeSelector";
 import { OutfitResult } from "@/components/outfit/OutfitResult";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Paywall } from "@/components/premium/Paywall";
+import { track } from "@/lib/analytics";
 import { money } from "@/lib/utils/format";
+import Link from "next/link";
 
 const STARTERS = [
   "A clean summer outfit under $200",
@@ -36,7 +39,7 @@ export default function StylistPage() {
 
 function StylistInner() {
   const params = useSearchParams();
-  const { profile, storeOutfit, hydrated } = useAtelier();
+  const { profile, storeOutfit, hydrated, consumeGeneration, generationsLeft, isPremium } = useAtelier();
 
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<OutfitMode>("everyday");
@@ -46,6 +49,7 @@ function StylistInner() {
   const [loading, setLoading] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
   const [result, setResult] = useState<Outfit | null>(null);
+  const [paywall, setPaywall] = useState(false);
   const seeded = useRef(false);
 
   // Seed from ?q= once.
@@ -61,6 +65,11 @@ function StylistInner() {
   }, [hydrated]);
 
   function run(text: string) {
+    // Free tier: enforce the daily styling cap, then open the paywall.
+    if (!consumeGeneration()) {
+      setPaywall(true);
+      return;
+    }
     setLoading(true);
     setResult(null);
     setThinkingStep(0);
@@ -78,6 +87,7 @@ function StylistInner() {
         mode: modeTouched ? mode : undefined,
       });
       storeOutfit(outfit);
+      track({ name: "outfit_generated", prompt: text, mode: outfit.mode, total: outfit.total, intents: outfit.intents });
       if (!modeTouched) setMode(outfit.mode); // sync chip highlight to inference
       setResult(outfit);
       setLoading(false);
@@ -96,6 +106,15 @@ function StylistInner() {
         eyebrow="AI Stylist"
         title="What should we put you in?"
         subtitle="Describe the outfit, occasion, vibe, colors or budget — in your own words."
+        action={
+          isPremium ? (
+            <span className="rounded-full bg-champagne-gradient px-3 py-1.5 text-xs font-semibold text-studio-900">Mira+ · unlimited</span>
+          ) : (
+            <Link href="/upgrade" className="rounded-full border border-line bg-paper-50 px-3 py-1.5 text-xs text-ink-600 hover:border-ink-300">
+              {generationsLeft} styling{generationsLeft === 1 ? "" : "s"} left today
+            </Link>
+          )
+        }
       />
 
       {/* Composer */}
@@ -167,6 +186,15 @@ function StylistInner() {
           </div>
         )}
       </div>
+
+      {paywall && (
+        <Paywall
+          feature="unlimited-styling"
+          title="You're on a roll"
+          body={`You've used your ${3} free stylings today. Go unlimited with Mira+ and never stop.`}
+          onClose={() => setPaywall(false)}
+        />
+      )}
     </div>
   );
 }

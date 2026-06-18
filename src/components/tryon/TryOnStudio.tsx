@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import type { Outfit, StyleProfile } from "@/lib/types";
 import { buildLook, fitReport, SKIN_TONES, HAIR_TONES, type LookSlot } from "@/lib/ai/look";
 import { FashionFigure, type Pose } from "@/components/tryon/FashionFigure";
+import { useAtelier } from "@/lib/store/AtelierStore";
+import { Paywall } from "@/components/premium/Paywall";
 import { cn } from "@/lib/utils/format";
 
 const POSES: { id: Pose; label: string }[] = [
@@ -23,12 +25,15 @@ export function TryOnStudio({
   compareOutfit?: Outfit;
   photo?: string;
 }) {
+  const { can } = useAtelier();
+  const advanced = can("advanced-tryon");
   const [pose, setPose] = useState<Pose>("front");
   const [zoom, setZoom] = useState(1);
   const [before, setBefore] = useState(false);
   const [skin, setSkin] = useState(profile.bodyPhoto ? SKIN_TONES[1] : SKIN_TONES[1]);
   const [hair, setHair] = useState(HAIR_TONES[0]);
   const [swap, setSwap] = useState<Record<string, string>>({});
+  const [paywall, setPaywall] = useState(false);
 
   const baseLook = useMemo(() => buildLook(outfit), [outfit]);
   // apply colour swaps
@@ -55,20 +60,24 @@ export function TryOnStudio({
           Mira Fitting Room
         </div>
 
-        {/* pose switch */}
+        {/* pose switch — side & back are Mira+ */}
         <div className="absolute right-4 top-4 z-20 flex rounded-full glass-dark p-0.5 text-xs">
-          {POSES.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPose(p.id)}
-              className={cn(
-                "rounded-full px-3 py-1 transition",
-                pose === p.id ? "bg-champagne-gradient text-studio-900" : "text-paper-300 hover:text-paper-50",
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
+          {POSES.map((p) => {
+            const locked = !advanced && p.id !== "front";
+            return (
+              <button
+                key={p.id}
+                onClick={() => (locked ? setPaywall(true) : setPose(p.id))}
+                className={cn(
+                  "rounded-full px-3 py-1 transition",
+                  pose === p.id ? "bg-champagne-gradient text-studio-900" : "text-paper-300 hover:text-paper-50",
+                )}
+                aria-label={locked ? `${p.label} view (Mira+)` : `${p.label} view`}
+              >
+                {p.label}{locked && " 🔒"}
+              </button>
+            );
+          })}
         </div>
 
         <div className={cn("relative grid gap-2 px-4 pb-2 pt-16", compareLook ? "grid-cols-2" : "grid-cols-1")}>
@@ -123,6 +132,19 @@ export function TryOnStudio({
             <div className="h-full rounded-full bg-sage-500" style={{ width: `${fit.sizingAccuracy}%` }} />
           </div>
           <p className="mt-3 text-[11px] leading-relaxed text-paper-300">{fit.note}</p>
+
+          {/* recommended adjustments */}
+          <div className="mt-3 border-t border-studio-700 pt-3">
+            <p className="mb-1.5 text-[11px] uppercase tracking-[0.2em] text-paper-300">Recommended adjustments</p>
+            <ul className="space-y-1">
+              {fit.adjustments.slice(0, 3).map((a, i) => (
+                <li key={i} className="flex gap-1.5 text-[11px] leading-snug text-paper-200">
+                  <span className="text-champagne-300">→</span>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         <div className="bg-studio-900 p-4">
@@ -155,8 +177,15 @@ export function TryOnStudio({
 
           {swappableSlots.length > 0 && (
             <>
-              <p className="mb-2 text-[11px] uppercase tracking-[0.2em] text-paper-300">Swap color</p>
-              <div className="space-y-2">
+              <div className="mb-2 flex items-center gap-2">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-paper-300">Swap color</p>
+                {!advanced && (
+                  <button onClick={() => setPaywall(true)} className="rounded-full bg-champagne-gradient px-1.5 py-0.5 text-[9px] font-semibold text-studio-900">
+                    Mira+
+                  </button>
+                )}
+              </div>
+              <div className={cn("space-y-2", !advanced && "pointer-events-none opacity-40")}>
                 {swappableSlots.slice(0, 3).map((slot) => {
                   const paint = baseLook[slot]!;
                   const options = [paint.color, ...paint.palette, "#1A1714", "#F3F0EA", "#222B3D"].filter(
@@ -185,6 +214,15 @@ export function TryOnStudio({
           )}
         </div>
       </div>
+
+      {paywall && (
+        <Paywall
+          feature="advanced-tryon"
+          title="Try it from every angle"
+          body="Side & back views, color swapping and outfit compare are part of Mira+."
+          onClose={() => setPaywall(false)}
+        />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 import { CATALOG, getProduct } from "@/lib/data/catalog";
 import { getBrand } from "@/lib/data/brands";
 import { getRetailer } from "@/lib/data/retailers";
@@ -21,7 +22,10 @@ export default function ProductPage() {
   const { addToCart, recordView } = useAtelier();
 
   useEffect(() => {
-    if (product) recordView(product.id);
+    if (product) {
+      recordView(product.id);
+      track({ name: "product_viewed", productId: product.id, price: product.price });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 

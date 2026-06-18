@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Main */}
-        <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
+        <main id="main" tabIndex={-1} className="min-w-0 flex-1 pb-24 outline-none md:pb-0">{children}</main>
       </div>
 
       {/* Mobile bottom nav */}

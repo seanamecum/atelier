@@ -9,12 +9,32 @@ import { useAtelier } from "@/lib/store/AtelierStore";
 import { pieceAlternatives } from "@/lib/ai/stylist";
 import { OutfitLookboard } from "@/components/outfit/OutfitLookboard";
 import { ProductCard } from "@/components/outfit/ProductCard";
+import { track } from "@/lib/analytics";
 import { money } from "@/lib/utils/format";
 
 export function OutfitResult({ outfit }: { outfit: Outfit }) {
   const router = useRouter();
   const { closet, toggleSaveOutfit, isSaved, addOutfitToCart, storeOutfit } = useAtelier();
   const [flash, setFlash] = useState<string | null>(null);
+
+  async function shareOutfit() {
+    storeOutfit(outfit);
+    const url = `${window.location.origin}/outfit/${outfit.id}`;
+    const data = { title: `${outfit.title} · Mira`, text: outfit.summary, url };
+    try {
+      if (navigator.share) {
+        await navigator.share(data);
+        track({ name: "outfit_shared", outfitId: outfit.id, method: "web-share" });
+      } else {
+        await navigator.clipboard.writeText(url);
+        track({ name: "outfit_shared", outfitId: outfit.id, method: "clipboard" });
+        setFlash("Look link copied to clipboard");
+        setTimeout(() => setFlash(null), 1800);
+      }
+    } catch {
+      /* user cancelled share */
+    }
+  }
   // productId(original) -> swapped Product
   const [swaps, setSwaps] = useState<Record<string, Product>>({});
 
@@ -75,7 +95,7 @@ export function OutfitResult({ outfit }: { outfit: Outfit }) {
                       {alts.cheaper && shown.id !== alts.cheaper.id && (
                         <button
                           className="rounded-full border border-sage-300 bg-sage-100/60 px-2 py-0.5 text-[10px] font-medium text-sage-700 hover:bg-sage-100"
-                          onClick={() => setSwaps((s) => ({ ...s, [piece.productId]: alts.cheaper! }))}
+                          onClick={() => { track({ name: "piece_swapped", from: shown.id, to: alts.cheaper!.id, direction: "budget" }); setSwaps((s) => ({ ...s, [piece.productId]: alts.cheaper! })); }}
                         >
                           ↓ Budget {money(alts.cheaper.price)}
                         </button>
@@ -83,7 +103,7 @@ export function OutfitResult({ outfit }: { outfit: Outfit }) {
                       {alts.upgrade && shown.id !== alts.upgrade.id && (
                         <button
                           className="rounded-full border border-champagne-200 bg-champagne-100/50 px-2 py-0.5 text-[10px] font-medium text-clay-600 hover:bg-champagne-100"
-                          onClick={() => setSwaps((s) => ({ ...s, [piece.productId]: alts.upgrade! }))}
+                          onClick={() => { track({ name: "piece_swapped", from: shown.id, to: alts.upgrade!.id, direction: "upgrade" }); setSwaps((s) => ({ ...s, [piece.productId]: alts.upgrade! })); }}
                         >
                           ↑ Upgrade {money(alts.upgrade.price)}
                         </button>
@@ -152,24 +172,28 @@ export function OutfitResult({ outfit }: { outfit: Outfit }) {
                 className="btn-accent w-full"
                 onClick={() => {
                   const n = addOutfitToCart(effective);
+                  track({ name: "add_to_cart", outfitId: effective.id, count: n, value: effective.total });
                   setFlash(`Added ${n} pieces to your bag`);
                   setTimeout(() => setFlash(null), 1800);
                 }}
               >
                 Add full look to bag · {money(effective.total)}
               </button>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   className="btn-ghost"
-                  onClick={() => { storeOutfit(effective); router.push(`/try-on?outfit=${effective.id}`); }}
+                  onClick={() => { storeOutfit(effective); track({ name: "tryon_opened", outfitId: effective.id }); router.push(`/try-on?outfit=${effective.id}`); }}
                 >
-                  🪞 Try it on
+                  🪞 Try on
                 </button>
                 <button
                   className="btn-ghost"
-                  onClick={() => { storeOutfit(effective); toggleSaveOutfit(effective); }}
+                  onClick={() => { storeOutfit(effective); if (!saved) track({ name: "outfit_saved", outfitId: effective.id }); toggleSaveOutfit(effective); }}
                 >
-                  {saved ? "🔖 Saved" : "Save look"}
+                  {saved ? "🔖 Saved" : "Save"}
+                </button>
+                <button className="btn-ghost" onClick={shareOutfit} aria-label="Share outfit">
+                  ↗ Share
                 </button>
               </div>
               <Link href="/cart" className="btn-quiet w-full justify-center">Go to bag →</Link>

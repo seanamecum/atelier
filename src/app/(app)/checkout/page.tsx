@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAtelier } from "@/lib/store/AtelierStore";
 import { getProduct } from "@/lib/data/catalog";
 import { getBrand } from "@/lib/data/brands";
 import { planCartHandoff } from "@/lib/retail/affiliate";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { track } from "@/lib/analytics";
 import { money, cn } from "@/lib/utils/format";
 
 export default function CheckoutPage() {
@@ -16,6 +17,14 @@ export default function CheckoutPage() {
     useAtelier();
   const [confirmed, setConfirmed] = useState(false);
   const [placed, setPlaced] = useState(false);
+
+  useEffect(() => {
+    if (hydrated && cart.lines.length > 0) {
+      const retailers = new Set(cart.lines.map((l) => getProduct(l.productId)?.retailerId).filter(Boolean));
+      track({ name: "checkout_started", value: cartSubtotal, retailers: retailers.size });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   if (!hydrated) return null;
 
@@ -136,7 +145,7 @@ export default function CheckoutPage() {
             <button
               className="btn-accent mt-3 w-full !py-3"
               disabled={!confirmed}
-              onClick={() => { createPendingOrder(); confirmOrder(); setPlaced(true); }}
+              onClick={() => { const o = createPendingOrder(); confirmOrder(); track({ name: "order_confirmed", value: o.total, items: o.lines.reduce((t, l) => t + l.qty, 0) }); setPlaced(true); }}
             >
               Confirm & place order · {money(total)}
             </button>

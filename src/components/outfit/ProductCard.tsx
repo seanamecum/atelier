@@ -9,6 +9,7 @@ import { Price } from "@/components/ui/Price";
 import { Stars } from "@/components/ui/Stars";
 import { useAtelier } from "@/lib/store/AtelierStore";
 import { checkInventory } from "@/lib/retail/affiliate";
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils/format";
 import { useState } from "react";
 
@@ -85,6 +86,7 @@ export function ProductCard({
             disabled={!stock.inStock}
             onClick={() => {
               addToCart({ productId: product.id, size, qty: 1 });
+              track({ name: "add_to_cart", productId: product.id, count: 1, value: product.price });
               setAdded(true);
               setTimeout(() => setAdded(false), 1400);
             }}

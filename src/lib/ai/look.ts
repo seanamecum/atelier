@@ -43,6 +43,8 @@ export interface FitReport {
   /** 0–100 estimated sizing accuracy. */
   sizingAccuracy: number;
   note: string;
+  /** Concrete, actionable fit guidance. */
+  adjustments: string[];
 }
 
 export function fitReport(profile: StyleProfile): FitReport {
@@ -61,7 +63,22 @@ export function fitReport(profile: StyleProfile): FitReport {
   const note = profile.bodyType
     ? `Calibrated to a ${profile.bodyType} build${profile.heightCm ? ` · ${profile.heightCm}cm` : ""}${profile.fitPreference ? ` · prefers ${profile.fitPreference} fit` : ""}.`
     : "Add height, weight & body type in your profile for sharper size calls.";
-  return { confidence, sizingAccuracy, note };
+
+  // Concrete adjustments based on profile signals.
+  const adjustments: string[] = [];
+  if (!profile.sizes.top) adjustments.push("Add your top size for a confident shirt/jacket call.");
+  if (!profile.sizes.bottomWaist) adjustments.push("Add your waist size to dial in trousers and jeans.");
+  if (profile.fitPreference === "relaxed" || profile.fitPreference === "oversized")
+    adjustments.push("You prefer a roomier fit — consider sizing up one in tailored pieces.");
+  if (profile.fitPreference === "slim")
+    adjustments.push("For a slim fit, take your true size; size down only if between sizes.");
+  if (profile.bodyType === "tall" || profile.bodyType === "athletic")
+    adjustments.push("Look for 'tall' or 'athletic' cuts where offered for sleeve & inseam length.");
+  if (profile.bodyType === "petite")
+    adjustments.push("Petite cuts will keep proportions clean — check for petite sizing.");
+  if (adjustments.length === 0) adjustments.push("Your measurements look complete — recommended sizes should fit true.");
+
+  return { confidence, sizingAccuracy, note, adjustments };
 }
 
 /** Skin-tone presets for the body model. */

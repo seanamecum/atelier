@@ -21,8 +21,9 @@ export default function TryOnPage() {
 
 function TryOnInner() {
   const params = useSearchParams();
-  const { profile, outfits, lastOutfitId, savedOutfits, setBodyPhoto, addOutfitToCart, toggleSaveOutfit, isSaved, hydrated } =
+  const { profile, outfits, lastOutfitId, savedOutfits, setBodyPhoto, addOutfitToCart, toggleSaveOutfit, isSaved, can, hydrated } =
     useAtelier();
+  const canCompare = can("advanced-tryon");
 
   const available = useMemo(() => {
     const list = [...savedOutfits()];
@@ -81,8 +82,13 @@ function TryOnInner() {
                     </button>
                   ))}
                 </div>
-                <p className="eyebrow mb-2 mt-4">Compare side by side</p>
-                <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 edge-fade">
+                <div className="mb-2 mt-4 flex items-center gap-2">
+                  <p className="eyebrow">Compare side by side</p>
+                  {!canCompare && (
+                    <Link href="/upgrade" className="rounded-full bg-champagne-gradient px-1.5 py-0.5 text-[9px] font-semibold text-studio-900">Mira+</Link>
+                  )}
+                </div>
+                <div className={cn("no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 edge-fade", !canCompare && "pointer-events-none opacity-40")}>
                   <button
                     onClick={() => setCompareId(null)}
                     className={cn("shrink-0 rounded-xl border px-3 py-2 text-xs transition", !compareId ? "border-clay-400 bg-clay-50 text-clay-600" : "border-line text-ink-500 hover:border-ink-300")}
