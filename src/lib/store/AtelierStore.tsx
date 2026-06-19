@@ -5,6 +5,7 @@ import type {
   Cart,
   CartLine,
   ClosetItem,
+  Collection,
   Order,
   Outfit,
   StyleProfile,
@@ -40,6 +41,7 @@ interface PersistedState {
   streak: Streak;
   plan: Plan;
   usage: Usage;
+  collections: Collection[];
 }
 
 function todayKey(): string {
@@ -77,6 +79,7 @@ const INITIAL: PersistedState = {
   streak: { count: 0, lastActive: "" },
   plan: "free",
   usage: { day: "", generations: 0 },
+  collections: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -129,6 +132,12 @@ interface AtelierContextValue extends PersistedState {
   /** Try to consume a styling credit. Returns false if the free cap is hit. */
   consumeGeneration: () => boolean;
   setPlan: (plan: Plan) => void;
+
+  // collections
+  collections: Collection[];
+  createCollection: (name: string, outfitId?: string) => string;
+  toggleOutfitInCollection: (collectionId: string, outfitId: string) => void;
+  deleteCollection: (id: string) => void;
 }
 
 const AtelierContext = createContext<AtelierContextValue | null>(null);
@@ -379,6 +388,39 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
           if (plan !== "free" && s.plan === "free") track({ name: "subscription_activated", plan });
           return { ...s, plan };
         }),
+
+      // ---- collections ----
+      collections: state.collections,
+
+      createCollection: (name, outfitId) => {
+        const id = uid("col");
+        setState((s) => ({
+          ...s,
+          collections: [
+            { id, name: name.trim() || "New collection", outfitIds: outfitId ? [outfitId] : [], createdAt: Date.now() },
+            ...s.collections,
+          ],
+        }));
+        return id;
+      },
+
+      toggleOutfitInCollection: (collectionId, outfitId) =>
+        setState((s) => ({
+          ...s,
+          collections: s.collections.map((c) =>
+            c.id === collectionId
+              ? {
+                  ...c,
+                  outfitIds: c.outfitIds.includes(outfitId)
+                    ? c.outfitIds.filter((x) => x !== outfitId)
+                    : [...c.outfitIds, outfitId],
+                }
+              : c,
+          ),
+        })),
+
+      deleteCollection: (id) =>
+        setState((s) => ({ ...s, collections: s.collections.filter((c) => c.id !== id) })),
     };
   }, [state, hydrated]);
 

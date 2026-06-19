@@ -188,6 +188,13 @@ export interface Outfit {
 // Commerce
 // ---------------------------------------------------------------------------
 
+export interface Collection {
+  id: string;
+  name: string;
+  outfitIds: string[];
+  createdAt: number;
+}
+
 export interface CartLine {
   productId: string;
   size: string;

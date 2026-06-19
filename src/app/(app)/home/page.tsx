@@ -22,7 +22,7 @@ const QUICK_PROMPTS = [
 
 export default function HomePage() {
   const router = useRouter();
-  const { profile, savedOutfits, cart, recentlyViewedIds, streak, hydrated, storeOutfit } = useAtelier();
+  const { profile, savedOutfits, cart, recentlyViewedIds, streak, collections, outfits, hydrated, storeOutfit } = useAtelier();
   const [q, setQ] = useState("");
 
   const saved = hydrated ? savedOutfits() : [];
@@ -184,6 +184,34 @@ export default function HomePage() {
         <section>
           <SectionHeader title="Recently viewed" />
           <ProductRail products={recent as never} />
+        </section>
+      )}
+
+      {/* Collections */}
+      {collections.length > 0 && (
+        <section>
+          <SectionHeader title="Your collections" caption="Curated boards" href="/saved" />
+          <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 edge-fade">
+            {collections.map((c) => {
+              const looks = c.outfitIds.map((id) => outfits[id]).filter(Boolean);
+              return (
+                <Link key={c.id} href="/saved" className="w-44 shrink-0 rounded-2xl border border-line bg-paper-50 p-3 shadow-card transition hover:-translate-y-0.5">
+                  <div className="mb-2 grid grid-cols-2 gap-1 overflow-hidden rounded-xl">
+                    {[0, 1, 2, 3].map((i) => {
+                      const o = looks[i];
+                      return (
+                        <div key={i} className="aspect-square overflow-hidden bg-gradient-to-b from-studio-800 to-studio-950">
+                          {o ? <FashionFigure look={buildLook(o)} /> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="truncate text-sm font-medium text-ink-900">{c.name}</p>
+                  <p className="text-xs text-ink-400">{c.outfitIds.length} look{c.outfitIds.length === 1 ? "" : "s"}</p>
+                </Link>
+              );
+            })}
+          </div>
         </section>
       )}
 
