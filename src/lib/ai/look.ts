@@ -48,6 +48,7 @@ export interface FitReport {
 }
 
 export function fitReport(profile: StyleProfile): FitReport {
+  const m = profile.measurements ?? {};
   const signals = [
     profile.sizes.top,
     profile.sizes.bottomWaist,
@@ -57,15 +58,18 @@ export function fitReport(profile: StyleProfile): FitReport {
     profile.bodyType,
     profile.fitPreference,
   ];
+  // Tape measurements are the strongest signal — each adds real confidence.
+  const measureCount = [m.chest, m.waist, m.hips, m.inseam, m.shoulder].filter(Boolean).length;
   const filled = signals.filter(Boolean).length;
-  const confidence = Math.min(0.58 + filled * 0.06, 0.98);
-  const sizingAccuracy = Math.round(Math.min(62 + filled * 5.4, 99));
+  const confidence = Math.min(0.52 + filled * 0.05 + measureCount * 0.045, 0.99);
+  const sizingAccuracy = Math.round(Math.min(58 + filled * 4.4 + measureCount * 4, 99));
   const note = profile.bodyType
     ? `Calibrated to a ${profile.bodyType} build${profile.heightCm ? ` · ${profile.heightCm}cm` : ""}${profile.fitPreference ? ` · prefers ${profile.fitPreference} fit` : ""}.`
     : "Add height, weight & body type in your profile for sharper size calls.";
 
   // Concrete adjustments based on profile signals.
   const adjustments: string[] = [];
+  if (measureCount === 0) adjustments.push("Add chest, waist & inseam measurements for the most accurate sizing.");
   if (!profile.sizes.top) adjustments.push("Add your top size for a confident shirt/jacket call.");
   if (!profile.sizes.bottomWaist) adjustments.push("Add your waist size to dial in trousers and jeans.");
   if (profile.fitPreference === "relaxed" || profile.fitPreference === "oversized")

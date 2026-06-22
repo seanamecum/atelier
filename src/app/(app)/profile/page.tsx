@@ -75,12 +75,16 @@ function ProfileInner() {
   const params = useSearchParams();
   const router = useRouter();
   const setup = params.get("setup") === "1";
-  const { profile, updateProfile, completeOnboarding, setBodyPhoto, plan, isPremium } = useAtelier();
+  const { profile, updateProfile, completeOnboarding, setBodyPhoto, plan, isPremium, account, isSignedIn, signOut } = useAtelier();
   const [saved, setSaved] = useState(false);
 
   const sizes = profile.sizes;
   const setSize = (key: keyof typeof sizes, v: string) =>
     updateProfile({ sizes: { ...sizes, [key]: sizes[key] === v ? undefined : v } });
+
+  const m = profile.measurements ?? {};
+  const setMeasure = (key: keyof typeof m, v: string) =>
+    updateProfile({ measurements: { ...m, [key]: v ? +v : undefined } });
 
   const onSave = () => {
     if (setup) {
@@ -126,6 +130,35 @@ function ProfileInner() {
               {isPremium ? "Manage" : "Go Mira+"}
             </span>
           </Link>
+        )}
+
+        {/* Account */}
+        {!setup && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-paper-50 p-4">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-ink-900 text-sm font-medium text-paper-50">
+                {(account?.name || profile.name || "Y").charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-ink-900">
+                  {account?.name || profile.name || "Guest"}
+                </p>
+                <p className="truncate text-xs text-ink-400">
+                  {isSignedIn ? account?.email : "Guest session · not synced"}
+                </p>
+              </div>
+            </div>
+            {isSignedIn ? (
+              <button
+                className="btn-ghost !py-1.5 !text-xs"
+                onClick={() => { if (confirm("Sign out and clear this device's data?")) { signOut(); router.push("/"); } }}
+              >
+                Sign out
+              </button>
+            ) : (
+              <Link href="/onboarding" className="btn-ghost !py-1.5 !text-xs">Create account</Link>
+            )}
+          </div>
         )}
 
         {/* Identity */}
@@ -196,6 +229,31 @@ function ProfileInner() {
               <span className="eyebrow mb-2 block">Dress</span>
               <SingleSelect options={DRESS_SIZES.map((s) => ({ value: s, label: s }))} value={sizes.dress} onChange={(v) => setSize("dress", v)} />
             </div>
+          </div>
+        </Section>
+
+        {/* Measurements */}
+        <Section title="Body measurements" hint="Optional, in cm. Tape measurements give the most accurate size recommendations.">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {([
+              ["chest", "Chest"],
+              ["waist", "Waist"],
+              ["hips", "Hips"],
+              ["inseam", "Inseam"],
+              ["shoulder", "Shoulder"],
+            ] as const).map(([key, label]) => (
+              <label key={key} className="block">
+                <span className="eyebrow mb-1.5 block">{label}</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  className="field"
+                  placeholder="cm"
+                  value={m[key] ?? ""}
+                  onChange={(e) => setMeasure(key, e.target.value)}
+                />
+              </label>
+            ))}
           </div>
         </Section>
 

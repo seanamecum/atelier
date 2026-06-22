@@ -112,11 +112,21 @@ export interface SizeProfile {
   outerwear?: string;
 }
 
+/** Optional tape-measure values (cm) that sharpen size recommendations. */
+export interface BodyMeasurements {
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  inseam?: number;
+  shoulder?: number;
+}
+
 export interface StyleProfile {
   name: string;
   heightCm?: number;
   weightKg?: number;
   bodyType?: BodyType;
+  measurements?: BodyMeasurements;
   sizes: SizeProfile;
   /** Per-outfit budget ceiling in USD. */
   budget: number;
@@ -131,6 +141,19 @@ export interface StyleProfile {
   /** Optional uploaded full-body photo (data URL) for try-on. */
   bodyPhoto?: string;
   onboarded: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Account / identity
+// ---------------------------------------------------------------------------
+
+export interface Account {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: number;
+  /** True for "continue without an account" sessions. */
+  guest: boolean;
 }
 
 // ---------------------------------------------------------------------------

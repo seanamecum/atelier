@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  Account,
   Cart,
   CartLine,
   ClosetItem,
@@ -12,6 +13,7 @@ import type {
 } from "@/lib/types";
 import { getProduct } from "@/lib/data/catalog";
 import { uid } from "@/lib/utils/format";
+import { resolveAccount, guestAccount } from "@/lib/auth";
 import { type Plan, type PremiumFeature, hasFeature, FREE_DAILY_GENERATIONS } from "@/lib/premium";
 import { track } from "@/lib/analytics";
 
@@ -30,6 +32,7 @@ interface Usage {
 }
 
 interface PersistedState {
+  account: Account | null;
   profile: StyleProfile;
   closet: ClosetItem[];
   outfits: Record<string, Outfit>;
@@ -68,6 +71,7 @@ const DEFAULT_PROFILE: StyleProfile = {
 };
 
 const INITIAL: PersistedState = {
+  account: null,
   profile: DEFAULT_PROFILE,
   closet: [],
   outfits: {},
@@ -88,6 +92,13 @@ const INITIAL: PersistedState = {
 
 interface AtelierContextValue extends PersistedState {
   hydrated: boolean;
+
+  // identity
+  account: Account | null;
+  isSignedIn: boolean;
+  signIn: (name: string, email: string) => void;
+  continueAsGuest: () => void;
+  signOut: () => void;
 
   // profile
   updateProfile: (patch: Partial<StyleProfile>) => void;
@@ -215,6 +226,29 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
     return {
       ...state,
       hydrated,
+
+      // ---- identity ----
+      account: state.account,
+      isSignedIn: Boolean(state.account && !state.account.guest),
+
+      signIn: (name, email) =>
+        setState((s) => {
+          const account = resolveAccount(name, email);
+          return { ...s, account, profile: { ...s.profile, name: account.name || s.profile.name } };
+        }),
+
+      continueAsGuest: () =>
+        setState((s) => ({ ...s, account: s.account ?? guestAccount() })),
+
+      signOut: () => {
+        // Clear identity + personal data on this device (privacy-safe sign-out).
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+        setState({ ...INITIAL });
+      },
 
       updateProfile: (p) =>
         setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
