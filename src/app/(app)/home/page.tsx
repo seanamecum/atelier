@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAtelier } from "@/lib/store/AtelierStore";
 import { computeStyleDNA } from "@/lib/personalization/styleDNA";
 import { recommendedForYou, trendingNow, newArrivals, outfitOfTheDay } from "@/lib/data/feed";
+import { api, type FeedResult } from "@/lib/services/api";
 import { getProduct } from "@/lib/data/catalog";
 import { buildLook } from "@/lib/ai/look";
 import { FashionFigure } from "@/components/tryon/FashionFigure";
@@ -28,9 +29,23 @@ export default function HomePage() {
   const saved = hydrated ? savedOutfits() : [];
   const dna = useMemo(() => (hydrated ? computeStyleDNA(profile, saved, cart) : null), [hydrated, profile, saved, cart]);
   const ootd = useMemo(() => (hydrated ? outfitOfTheDay(profile) : null), [hydrated, profile]);
-  const recs = useMemo(() => (hydrated ? recommendedForYou(profile) : []), [hydrated, profile]);
-  const trending = useMemo(() => trendingNow(), []);
-  const arrivals = useMemo(() => newArrivals(), []);
+
+  // Local feed is the instant fallback; the API result upgrades it when it lands
+  // (so home never shows a loading gap and the /api/v1/feed endpoint is exercised).
+  const localRecs = useMemo(() => (hydrated ? recommendedForYou(profile) : []), [hydrated, profile]);
+  const localTrending = useMemo(() => trendingNow(), []);
+  const localArrivals = useMemo(() => newArrivals(), []);
+  const [feed, setFeed] = useState<FeedResult | null>(null);
+  useEffect(() => {
+    if (!hydrated) return;
+    let active = true;
+    api.feed(profile).then((f) => active && setFeed(f)).catch(() => {});
+    return () => { active = false; };
+  }, [hydrated, profile]);
+
+  const recs = feed?.recommended ?? localRecs;
+  const trending = feed?.trending ?? localTrending;
+  const arrivals = feed?.newArrivals ?? localArrivals;
   const recent = recentlyViewedIds.map(getProduct).filter(Boolean) as ReturnType<typeof getProduct>[];
 
   if (!hydrated || !dna || !ootd) return <HomeSkeleton />;
