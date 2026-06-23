@@ -50,6 +50,24 @@ npm run dev        # http://localhost:3001
 | `/product/[id]` | Product detail (sizes, retailer, affiliate buy link) |
 | `/cart` | Bag, grouped by retailer |
 | `/checkout` | Review, retailer handoff plan, explicit confirm |
+| `/upgrade` | Membership / Mira+ plans |
+
+## API & platform (web-first, mobile-ready)
+
+Mira is API-first so the website is the product today and native iOS/Android can
+be thin clients tomorrow — all sharing one backend. See **[ARCHITECTURE.md](ARCHITECTURE.md)**
+for the full blueprint and **[prisma/schema.prisma](prisma/schema.prisma)** for the
+PostgreSQL data model.
+
+- **Versioned REST API** under `src/app/api/v1/*` (`/health`, `/products`,
+  `/products/:id`, `/feed`, `/stylist`) with one `{ data } / { error }` envelope.
+- **Typed client SDK** — `src/lib/services/api.ts` is the single place the app talks
+  to the backend; the Stylist and Home screens already call it over HTTP. Set
+  `NEXT_PUBLIC_API_BASE_URL` so a native client reuses the same API.
+- **Environment** — copy [`.env.example`](.env.example) to `.env.local` for the
+  production integrations (Postgres/Prisma, auth, Stripe, storage, analytics).
+  None are required to run the in-memory prototype. **CI** (`.github/workflows/ci.yml`)
+  runs typecheck + build on every push/PR.
 
 ## Architecture
 
