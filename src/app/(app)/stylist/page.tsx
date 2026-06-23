@@ -4,10 +4,11 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Outfit, OutfitMode } from "@/lib/types";
 import { useAtelier } from "@/lib/store/AtelierStore";
-import { generateOutfit } from "@/lib/ai/stylist";
+import { api } from "@/lib/services/api";
 import { ModeSelector } from "@/components/outfit/ModeSelector";
 import { OutfitResult } from "@/components/outfit/OutfitResult";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ErrorState } from "@/components/ui/States";
 import { Paywall } from "@/components/premium/Paywall";
 import { track } from "@/lib/analytics";
 import { money } from "@/lib/utils/format";
@@ -50,6 +51,8 @@ function StylistInner() {
   const [thinkingStep, setThinkingStep] = useState(0);
   const [result, setResult] = useState<Outfit | null>(null);
   const [paywall, setPaywall] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lastPrompt = useRef("");
   const seeded = useRef(false);
 
   // Seed from ?q= once.
@@ -70,28 +73,30 @@ function StylistInner() {
       setPaywall(true);
       return;
     }
+    lastPrompt.current = text;
     setLoading(true);
     setResult(null);
+    setError(null);
     setThinkingStep(0);
     const interval = setInterval(
       () => setThinkingStep((s) => Math.min(s + 1, THINKING.length - 1)),
       280,
     );
-    // Simulate model latency; engine itself is synchronous.
-    setTimeout(() => {
-      clearInterval(interval);
-      const { outfit } = generateOutfit(profile, {
-        prompt: text,
-        // Only force the mode when the user explicitly chose a chip; otherwise
-        // let the engine infer it from the prompt.
-        mode: modeTouched ? mode : undefined,
+    // Call the AI stylist over the versioned HTTP API (same endpoint a mobile
+    // client would use). Only force the mode when the user picked a chip.
+    api.stylist
+      .generate({ prompt: text, mode: modeTouched ? mode : undefined, profile })
+      .then(({ outfit }) => {
+        storeOutfit(outfit);
+        track({ name: "outfit_generated", prompt: text, mode: outfit.mode, total: outfit.total, intents: outfit.intents });
+        if (!modeTouched) setMode(outfit.mode); // sync chip highlight to inference
+        setResult(outfit);
+      })
+      .catch(() => setError("We couldn't reach the stylist just now. Please try again."))
+      .finally(() => {
+        clearInterval(interval);
+        setLoading(false);
       });
-      storeOutfit(outfit);
-      track({ name: "outfit_generated", prompt: text, mode: outfit.mode, total: outfit.total, intents: outfit.intents });
-      if (!modeTouched) setMode(outfit.mode); // sync chip highlight to inference
-      setResult(outfit);
-      setLoading(false);
-    }, 1500);
   }
 
   const budgetHint = (() => {
@@ -165,7 +170,10 @@ function StylistInner() {
       {/* Result area */}
       <div className="mt-7">
         {loading && <ThinkingState step={thinkingStep} />}
-        {!loading && result && (
+        {!loading && error && (
+          <ErrorState title="Styling failed" body={error} onRetry={() => run(lastPrompt.current || prompt || "everyday outfit")} />
+        )}
+        {!loading && !error && result && (
           <div className="animate-rise">
             <OutfitResult outfit={result} />
             <div className="mt-5 flex justify-center">
@@ -175,7 +183,7 @@ function StylistInner() {
             </div>
           </div>
         )}
-        {!loading && !result && (
+        {!loading && !result && !error && (
           <div className="card grid place-items-center gap-2 p-12 text-center">
             <div className="text-4xl">✨</div>
             <p className="font-display text-xl text-ink-900">Your outfit will appear here</p>

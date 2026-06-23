@@ -1,0 +1,342 @@
+// Mira — database schema (PostgreSQL via Prisma).
+//
+// This is the production data model the API will be backed by. The in-memory
+// catalog/engines used today map 1:1 onto these tables, so wiring the real DB is
+// an adapter swap inside the /api/v1 routes — clients never change.
+//
+//   Provision:   npx prisma migrate dev --name init
+//   Generate:    npx prisma generate
+//
+// Auth (Clerk/Supabase/Auth.js) owns credentials; `User.authProviderId` links a
+// Mira user to the external identity. We never store passwords.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & profile
+// ---------------------------------------------------------------------------
+
+model User {
+  id             String   @id @default(cuid())
+  authProviderId String?  @unique // external auth subject (Clerk/Supabase)
+  email          String   @unique
+  name           String?
+  plan           Plan     @default(FREE)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  profile        Profile?
+  closet         ClosetItem[]
+  outfits        Outfit[]
+  collections    Collection[]
+  savedOutfits   SavedOutfit[]
+  cartLines      CartLine[]
+  orders         Order[]
+  subscription   Subscription?
+  events         AnalyticsEvent[]
+  generations    GenerationLog[]
+}
+
+model Profile {
+  id               String        @id @default(cuid())
+  userId           String        @unique
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bodyType         BodyType?
+  heightCm         Int?
+  weightKg         Int?
+  // measurements (cm)
+  chestCm          Int?
+  waistCm          Int?
+  hipsCm           Int?
+  inseamCm         Int?
+  shoulderCm       Int?
+  // sizes
+  topSize          String?
+  bottomWaist      String?
+  dressSize        String?
+  shoeSize         String?
+  outerwearSize    String?
+  // taste
+  budget           Int           @default(400)
+  fitPreference    FitPreference @default(REGULAR)
+  favoriteBrandIds String[]
+  colorPreferences String[]
+  colorAvoids      String[]
+  styleKeywords    String[]
+  bodyPhotoUrl     String? // S3 / Cloudinary key
+  onboarded        Boolean       @default(false)
+  updatedAt        DateTime      @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Closet (user-owned wardrobe)
+// ---------------------------------------------------------------------------
+
+model ClosetItem {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label            String
+  category         Category
+  colorName        String
+  colorHex         String
+  photoUrl         String? // S3 / Cloudinary key
+  matchedProductId String? // catalog match for smart pairing
+  // AI-detected attributes (vision model)
+  detectedPattern  String?
+  detectedMaterial String?
+  createdAt        DateTime @default(now())
+
+  @@index([userId, category])
+}
+
+// ---------------------------------------------------------------------------
+// Outfits & curation
+// ---------------------------------------------------------------------------
+
+model Outfit {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  mode       String
+  prompt     String?
+  summary    String
+  styleNotes String[]
+  intents    String[]
+  palette    String[]
+  total      Int // cents
+  pieces     OutfitPiece[]
+  saved      SavedOutfit[]
+  collections CollectionOutfit[]
+  createdAt  DateTime      @default(now())
+
+  @@index([userId])
+}
+
+model OutfitPiece {
+  id              String   @id @default(cuid())
+  outfitId        String
+  outfit          Outfit   @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  productId       String?
+  closetItemId    String?
+  recommendedSize String
+  rationale       String
+  fromCloset      Boolean  @default(false)
+}
+
+model SavedOutfit {
+  userId   String
+  outfitId String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outfit   Outfit   @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+  savedAt  DateTime @default(now())
+
+  @@id([userId, outfitId])
+}
+
+model Collection {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  outfits   CollectionOutfit[]
+  createdAt DateTime           @default(now())
+}
+
+model CollectionOutfit {
+  collectionId String
+  outfitId     String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  outfit       Outfit     @relation(fields: [outfitId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, outfitId])
+}
+
+// ---------------------------------------------------------------------------
+// Commerce
+// ---------------------------------------------------------------------------
+
+model CartLine {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  size      String
+  qty       Int      @default(1)
+  outfitId  String?
+  addedAt   DateTime @default(now())
+
+  @@unique([userId, productId, size])
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    OrderStatus @default(PENDING_CONFIRMATION)
+  subtotal  Int
+  shipping  Int
+  tax       Int
+  total     Int
+  lines     OrderLine[]
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+}
+
+model OrderLine {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  size      String
+  qty       Int
+  retailerId String
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 Plan
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  status               String   @default("active")
+}
+
+// Per-user free-tier rate limiting (replaces client-side daily counter).
+model GenerationLog {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  at     DateTime @default(now())
+
+  @@index([userId, at])
+}
+
+// ---------------------------------------------------------------------------
+// Catalog cache (synced from retailer feeds)
+// ---------------------------------------------------------------------------
+
+model Brand {
+  id   String @id
+  name String
+  tier String
+}
+
+model Retailer {
+  id                  String  @id
+  name                String
+  affiliateTag        String
+  baseUrl             String
+  supportsCartHandoff Boolean @default(false)
+}
+
+model Product {
+  id          String           @id
+  name        String
+  brandId     String
+  retailerId  String
+  category    Category
+  styleTags   String[]
+  seasons     String[]
+  colorName   String
+  colorHex    String
+  palette     String[]
+  price       Int // cents
+  msrp        Int?
+  productPath String
+  rating      Float
+  reviewCount Int
+  description String
+  variants    ProductVariant[]
+  // price-drop alerts watch this
+  priceHistory PricePoint[]
+
+  @@index([category])
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size      String
+  inventory Int     @default(0)
+}
+
+model PricePoint {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price     Int
+  at        DateTime @default(now())
+
+  @@index([productId, at])
+}
+
+// ---------------------------------------------------------------------------
+// Analytics (mirror of the client event taxonomy)
+// ---------------------------------------------------------------------------
+
+model AnalyticsEvent {
+  id      String   @id @default(cuid())
+  userId  String?
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name    String
+  props   Json
+  ts      DateTime @default(now())
+
+  @@index([name, ts])
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Plan {
+  FREE
+  PLUS
+}
+
+enum Category {
+  TOP
+  BOTTOM
+  DRESS
+  OUTERWEAR
+  SHOES
+  ACCESSORY
+  BAG
+}
+
+enum FitPreference {
+  SLIM
+  TAILORED
+  REGULAR
+  RELAXED
+  OVERSIZED
+}
+
+enum BodyType {
+  ATHLETIC
+  SLIM
+  AVERAGE
+  CURVY
+  PLUS
+  TALL
+  PETITE
+}
+
+enum OrderStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  HANDED_OFF
+}
