@@ -8,9 +8,11 @@ import { CATALOG, getProduct } from "@/lib/data/catalog";
 import { getBrand } from "@/lib/data/brands";
 import { getRetailer } from "@/lib/data/retailers";
 import { affiliateLink } from "@/lib/retail/affiliate";
+import { api, type ProductDetail } from "@/lib/services/api";
 import { useAtelier } from "@/lib/store/AtelierStore";
 import { GarmentImage } from "@/components/visual/GarmentImage";
 import { ProductCard } from "@/components/outfit/ProductCard";
+import { EmptyState } from "@/components/ui/States";
 import { Price } from "@/components/ui/Price";
 import { Stars } from "@/components/ui/Stars";
 import { Swatches } from "@/components/visual/Swatches";
@@ -18,33 +20,57 @@ import { money, cn } from "@/lib/utils/format";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
-  const product = getProduct(id);
   const { addToCart, recordView, toggleWatch, isWatched } = useAtelier();
-  const watched = product ? isWatched(product.id) : false;
+
+  // Seed from the local catalog cache for an instant render, then refresh from
+  // the API (so the product screen genuinely runs through /api/v1/products/:id).
+  const local = getProduct(id);
+  const [detail, setDetail] = useState<ProductDetail | null>(() =>
+    local
+      ? {
+          product: local,
+          brand: getBrand(local.brandId) ?? null,
+          retailer: getRetailer(local.retailerId) ?? null,
+          affiliateUrl: affiliateLink(local),
+        }
+      : null,
+  );
+  const [notFound, setNotFound] = useState(false);
+  const [size, setSize] = useState<string | undefined>(local?.variants.find((v) => v.inventory > 0)?.size);
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
-    if (product) {
-      recordView(product.id);
-      track({ name: "product_viewed", productId: product.id, price: product.price });
+    let active = true;
+    api.products
+      .get(id)
+      .then((d) => {
+        if (!active) return;
+        setDetail(d);
+        if (!size) setSize(d.product.variants.find((v) => v.inventory > 0)?.size);
+      })
+      .catch((e: { status?: number }) => {
+        if (active && e?.status === 404 && !local) setNotFound(true);
+      });
+    const p = local;
+    if (p) {
+      recordView(p.id);
+      track({ name: "product_viewed", productId: p.id, price: p.price });
     }
+    return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const firstInStock = product?.variants.find((v) => v.inventory > 0)?.size;
-  const [size, setSize] = useState<string | undefined>(firstInStock);
-  const [added, setAdded] = useState(false);
-
-  if (!product) {
-    return (
-      <div className="card grid place-items-center gap-2 p-12 text-center">
-        <p className="font-display text-xl text-ink-900">Product not found</p>
-        <Link href="/stylist" className="btn-accent">Back to stylist</Link>
-      </div>
-    );
+  if (notFound) {
+    return <EmptyState icon="🧐" title="Product not found" body="This piece may no longer be available." cta={{ label: "Style an outfit", href: "/stylist" }} />;
+  }
+  if (!detail) {
+    return <div className="shimmer h-96 w-full rounded-2xl" aria-hidden />;
   }
 
-  const brand = getBrand(product.brandId);
-  const retailer = getRetailer(product.retailerId);
+  const product = detail.product;
+  const brand = detail.brand;
+  const retailer = detail.retailer;
+  const watched = isWatched(product.id);
   const selectedVariant = product.variants.find((v) => v.size === size);
 
   const related = CATALOG.filter(
@@ -131,7 +157,7 @@ export default function ProductPage() {
               {added ? "Added to bag ✓" : `Add to bag · ${money(product.price)}`}
             </button>
             <a
-              href={affiliateLink(product)}
+              href={detail.affiliateUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-ghost flex-1 justify-center !py-3"

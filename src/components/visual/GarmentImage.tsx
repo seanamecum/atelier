@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils/format";
 
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils/format";
  * and render <img> when present.
  */
 
-export function GarmentImage({
+function GarmentImageImpl({
   category,
   color,
   palette = [],
@@ -93,6 +94,9 @@ export function GarmentImage({
     </div>
   );
 }
+
+/** Memoized: pure render, mounted dozens of times across feeds/grids/rails. */
+export const GarmentImage = memo(GarmentImageImpl);
 
 interface Shades {
   color: string;
