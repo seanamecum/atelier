@@ -19,7 +19,8 @@ import { money, cn } from "@/lib/utils/format";
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const product = getProduct(id);
-  const { addToCart, recordView } = useAtelier();
+  const { addToCart, recordView, toggleWatch, isWatched } = useAtelier();
+  const watched = product ? isWatched(product.id) : false;
 
   useEffect(() => {
     if (product) {
@@ -122,6 +123,7 @@ export default function ProductPage() {
               onClick={() => {
                 if (!size) return;
                 addToCart({ productId: product.id, size, qty: 1 });
+                track({ name: "add_to_cart", productId: product.id, count: 1, value: product.price });
                 setAdded(true);
                 setTimeout(() => setAdded(false), 1500);
               }}
@@ -137,6 +139,13 @@ export default function ProductPage() {
               View at {retailer?.name} ↗
             </a>
           </div>
+          <button
+            className="btn-ghost mt-2 w-full !py-2.5"
+            onClick={() => { toggleWatch(product.id); track({ name: "product_watched", productId: product.id, watching: !watched }); }}
+            aria-pressed={watched}
+          >
+            {watched ? "🔔 Watching for price drops" : "🔕 Watch for price drops"}
+          </button>
           <p className="mt-3 text-xs text-ink-400">
             Free shipping over $250 · You always confirm before any purchase. Mira never checks out
             on its own.

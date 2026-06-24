@@ -26,14 +26,26 @@ export function ProductCard({
 }) {
   const brand = getBrand(product.brandId);
   const retailer = getRetailer(product.retailerId);
-  const { addToCart } = useAtelier();
+  const { addToCart, toggleWatch, isWatched } = useAtelier();
   const [added, setAdded] = useState(false);
+  const watched = isWatched(product.id);
 
   const size = recommendedSize ?? product.variants.find((v) => v.inventory > 0)?.size ?? "OS";
   const stock = checkInventory(product.id, size);
 
   return (
-    <div className="card group flex flex-col overflow-hidden">
+    <div className="card group relative flex flex-col overflow-hidden">
+      <button
+        onClick={() => { toggleWatch(product.id); track({ name: "product_watched", productId: product.id, watching: !watched }); }}
+        aria-label={watched ? "Stop watching for price drops" : "Watch for price drops"}
+        aria-pressed={watched}
+        className={cn(
+          "absolute right-2.5 top-2.5 z-10 grid h-7 w-7 place-items-center rounded-full text-[13px] shadow-card transition",
+          watched ? "bg-clay-400 text-paper-50" : "bg-paper-50/90 text-ink-500 hover:text-clay-500",
+        )}
+      >
+        {watched ? "🔔" : "🔕"}
+      </button>
       <Link href={`/product/${product.id}`} className="relative block">
         <GarmentImage
           category={product.category}
@@ -48,7 +60,7 @@ export function ProductCard({
           </span>
         )}
         {recommendedSize && (
-          <span className="absolute right-3 top-3 rounded-full bg-ink-900/90 px-2.5 py-1 text-[11px] font-medium text-paper-50">
+          <span className="absolute bottom-3 left-3 rounded-full bg-ink-900/90 px-2.5 py-1 text-[11px] font-medium text-paper-50">
             Size {recommendedSize}
           </span>
         )}

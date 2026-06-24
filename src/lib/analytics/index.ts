@@ -19,6 +19,8 @@ export type AnalyticsEvent =
   | { name: "checkout_started"; value: number; retailers: number }
   | { name: "order_confirmed"; value: number; items: number }
   | { name: "tryon_opened"; outfitId: string }
+  | { name: "product_watched"; productId: string; watching: boolean }
+  | { name: "alerts_viewed"; badgeCount: number }
   | { name: "paywall_viewed"; feature: string }
   | { name: "upgrade_started"; plan: string }
   | { name: "subscription_activated"; plan: string };

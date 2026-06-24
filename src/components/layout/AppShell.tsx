@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { useAtelier } from "@/lib/store/AtelierStore";
+import { computeAlerts } from "@/lib/data/alerts";
 import { cn } from "@/lib/utils/format";
 
 interface NavItem {
@@ -26,7 +28,11 @@ const MOBILE_NAV = NAV.filter((n) => n.href !== "/saved");
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { cartCount, profile } = useAtelier();
+  const { cartCount, profile, watchlist, hydrated } = useAtelier();
+  const alertCount = useMemo(
+    () => (hydrated ? computeAlerts(watchlist, profile.budget).badgeCount : 0),
+    [hydrated, watchlist, profile.budget],
+  );
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -39,7 +45,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Logo />
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/cart" className="relative btn-ghost !px-3 !py-1.5">
+            <Link href="/alerts" className="relative btn-ghost !px-3 !py-1.5" aria-label="Alerts">
+              🔔
+              {alertCount > 0 && (
+                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-clay-400 px-1 text-[10px] font-semibold text-paper-50">
+                  {alertCount}
+                </span>
+              )}
+            </Link>
+            <Link href="/cart" className="relative btn-ghost !px-3 !py-1.5" aria-label="Cart">
               🛍️
               {cartCount > 0 && (
                 <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-clay-400 px-1 text-[10px] font-semibold text-paper-50">

@@ -8,9 +8,11 @@ import { computeStyleDNA } from "@/lib/personalization/styleDNA";
 import { recommendedForYou, trendingNow, newArrivals, outfitOfTheDay } from "@/lib/data/feed";
 import { api, type FeedResult } from "@/lib/services/api";
 import { getProduct } from "@/lib/data/catalog";
+import { computeAlerts } from "@/lib/data/alerts";
 import { buildLook } from "@/lib/ai/look";
 import { FashionFigure } from "@/components/tryon/FashionFigure";
 import { ProductRail, SectionHeader } from "@/components/feed/ProductRail";
+import { ProductCard } from "@/components/outfit/ProductCard";
 import { Swatches } from "@/components/visual/Swatches";
 import { money, modeLabel, cn } from "@/lib/utils/format";
 
@@ -23,7 +25,8 @@ const QUICK_PROMPTS = [
 
 export default function HomePage() {
   const router = useRouter();
-  const { profile, savedOutfits, cart, recentlyViewedIds, streak, collections, outfits, hydrated, storeOutfit } = useAtelier();
+  const { profile, savedOutfits, cart, recentlyViewedIds, streak, collections, outfits, watchlist, hydrated, storeOutfit } = useAtelier();
+  const drops = useMemo(() => (hydrated ? computeAlerts(watchlist, profile.budget).priceDrops : []), [hydrated, watchlist, profile.budget]);
   const [q, setQ] = useState("");
 
   const saved = hydrated ? savedOutfits() : [];
@@ -167,6 +170,23 @@ export default function HomePage() {
         <SectionHeader title="Recommended for you" caption="Tuned to your Style DNA" href="/stylist" hrefLabel="Style a look" />
         <ProductRail products={recs} />
       </section>
+
+      {/* Price drops */}
+      {drops.length > 0 && (
+        <section>
+          <SectionHeader title="Price drops" caption="Markdowns worth a look" href="/alerts" hrefLabel="All alerts" />
+          <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 edge-fade">
+            {drops.slice(0, 8).map((d) => (
+              <div key={d.product.id} className="relative w-40 shrink-0 sm:w-44">
+                <span className="absolute -right-1.5 -top-1.5 z-10 rounded-full bg-clay-400 px-2 py-0.5 text-[10px] font-semibold text-paper-50 shadow-card">
+                  −{d.dropPct}%
+                </span>
+                <ProductCard product={d.product} compact />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Trending */}
       <section>

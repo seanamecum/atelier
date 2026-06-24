@@ -45,6 +45,7 @@ interface PersistedState {
   plan: Plan;
   usage: Usage;
   collections: Collection[];
+  watchlist: string[];
 }
 
 function todayKey(): string {
@@ -84,6 +85,7 @@ const INITIAL: PersistedState = {
   plan: "free",
   usage: { day: "", generations: 0 },
   collections: [],
+  watchlist: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -149,6 +151,11 @@ interface AtelierContextValue extends PersistedState {
   createCollection: (name: string, outfitId?: string) => string;
   toggleOutfitInCollection: (collectionId: string, outfitId: string) => void;
   deleteCollection: (id: string) => void;
+
+  // watchlist / alerts
+  watchlist: string[];
+  toggleWatch: (productId: string) => void;
+  isWatched: (productId: string) => boolean;
 }
 
 const AtelierContext = createContext<AtelierContextValue | null>(null);
@@ -455,6 +462,17 @@ export function AtelierProvider({ children }: { children: React.ReactNode }) {
 
       deleteCollection: (id) =>
         setState((s) => ({ ...s, collections: s.collections.filter((c) => c.id !== id) })),
+
+      // ---- watchlist ----
+      watchlist: state.watchlist,
+      toggleWatch: (productId) =>
+        setState((s) => ({
+          ...s,
+          watchlist: s.watchlist.includes(productId)
+            ? s.watchlist.filter((id) => id !== productId)
+            : [...s.watchlist, productId],
+        })),
+      isWatched: (productId) => state.watchlist.includes(productId),
     };
   }, [state, hydrated]);
 
