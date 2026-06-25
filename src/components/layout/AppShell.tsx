@@ -45,24 +45,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Logo />
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/alerts" className="relative btn-ghost !px-3 !py-1.5" aria-label="Alerts">
-              🔔
+            <Link
+              href="/alerts"
+              className="relative btn-ghost !px-3 !py-1.5"
+              aria-label={alertCount > 0 ? `Alerts, ${alertCount} new` : "Alerts"}
+            >
+              <span aria-hidden>🔔</span>
               {alertCount > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-clay-400 px-1 text-[10px] font-semibold text-paper-50">
+                <span aria-hidden className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-clay-400 px-1 text-[10px] font-semibold text-paper-50">
                   {alertCount}
                 </span>
               )}
             </Link>
-            <Link href="/cart" className="relative btn-ghost !px-3 !py-1.5" aria-label="Cart">
-              🛍️
+            <Link
+              href="/cart"
+              className="relative btn-ghost !px-3 !py-1.5"
+              aria-label={cartCount > 0 ? `Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}` : "Cart"}
+            >
+              <span aria-hidden>🛍️</span>
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-clay-400 px-1 text-[10px] font-semibold text-paper-50">
+                <span aria-hidden className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-clay-400 px-1 text-[10px] font-semibold text-paper-50">
                   {cartCount}
                 </span>
               )}
             </Link>
-            <Link href="/profile" className="grid h-9 w-9 place-items-center rounded-full bg-ink-900 text-sm font-medium text-paper-50">
-              {(profile.name || "Y").charAt(0).toUpperCase()}
+            <Link
+              href="/profile"
+              aria-label="Your profile"
+              className="grid h-9 w-9 place-items-center rounded-full bg-ink-900 text-sm font-medium text-paper-50"
+            >
+              <span aria-hidden>{(profile.name || "Y").charAt(0).toUpperCase()}</span>
             </Link>
           </div>
         </div>
